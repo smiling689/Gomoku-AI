@@ -1,8 +1,9 @@
-// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp -o gomoku           编译
-// python judge/judge.py ./gomoku ./baseline                                 时，我的ai是ai0(先手，黑棋)
-// python judge/judge.py ./baseline ./gomoku                                 时，我的ai是ai1(后手，白棋)
+// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp judge/zobrist.cpp -o gomoku           编译
+// python judge/judge.py ./gomoku ./baseline                                                   时，我的ai是ai0(先手，黑棋)
+// python judge/judge.py ./baseline ./gomoku                                                   时，我的ai是ai1(后手，白棋)
 #include "AIController.h"
 #include "my_eval.h"
+#include "zobrist.h"
 #include "flip.h"
 #include <utility>
 #include <cstring>
@@ -41,7 +42,9 @@ int max_value(int alpha , int beta , int depth);
 int winner();
 
 void init() {
+    transposition_table.clear(); 
     memset(board, EMPTY, sizeof(board));
+    init_zobrist();
     // srand(time(NULL));
 }
 
@@ -166,6 +169,7 @@ void flip_board(){
 std::pair<int, int> action(std::pair<int, int> loc) {
     if (loc.first != -1 && loc.second != -1) {
         board[loc.first][loc.second] = 1 - ai_side;
+        update_hash(loc.first, loc.second, 1 - ai_side);
     }
 
     // 2. 根据棋盘状态，计算当前是第几手棋
@@ -180,6 +184,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     if (current_turn == 1) {
         auto random = getRandom(); 
         board[random.first][random.second] = ai_side;
+        update_hash(random.first, random.second, ai_side);
         return random;
     }
 
@@ -191,6 +196,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
             std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
             // 确认要换手，执行真正的翻转并返回
             flip_board();
+            current_hash = calculate_hash();
             return {-1, -1};
         } else {
             std::cerr << "Smiling_AI: Not swapping is better. Playing regular move." << std::endl;
@@ -200,14 +206,19 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     if (ai_side == BLACK && black == 2 && white == 1 && loc.first == -1) {
         std::cerr << "Smiling_AI: Opponent swapped. " << std::endl;
         flip_board();
+        current_hash = calculate_hash();
     }
+
+    // transposition_table.clear(); 
 
     // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
     std::pair<int, int> my_move = Minimax();
     if (my_move.first != -1 && my_move.second != -1) {
         board[my_move.first][my_move.second] = ai_side;
+        update_hash(my_move.first, my_move.second, ai_side);
     }else{
         std::cerr << "MiniMax wrong! -1,-1" << std::endl;
+        // std::throw runtime_error("Minimax_wrong");
     }
 
     return my_move;
@@ -243,8 +254,10 @@ std::pair<int , int> Minimax(){
         for (const auto& move : moves) {
             int i = move.first , j = move.second;
             board[i][j] = BLACK;//落子
+            update_hash(i, j, BLACK);
             int move_value = min_value(alpha , beta , depth - 1);//调用min
             board[i][j] = EMPTY;//撤销
+            update_hash(i, j, BLACK);
             if(move_value > val){
                 val = move_value;
                 res = {i , j};
@@ -262,8 +275,10 @@ std::pair<int , int> Minimax(){
         for (const auto& move : moves) {
             int i = move.first , j = move.second;
             board[i][j] = WHITE;//落子
+            update_hash(i, j, WHITE);
             int move_value = max_value(alpha , beta , depth - 1);//调用min
             board[i][j] = EMPTY;//撤销
+            update_hash(i, j, WHITE);
             if(move_value < val){
                 val = move_value;
                 res = {i , j};
@@ -283,18 +298,56 @@ int min_value(int alpha , int beta , int depth){
     if(depth == 0 || ter != 2){
         return evaluate(ter == EMPTY ? 2 : ter);//评估当前棋局的分数，当前该白棋落子
     }
+
+    auto it = transposition_table.find(current_hash);
+    if (it != transposition_table.end() && it->second.depth >= depth) {
+        TTEntry entry = it->second;
+        if (entry.flag == EXACT) {
+            // std::cerr << "Zobrist is used !  ";
+            return entry.score;
+        }
+        if (entry.flag == LOWER_BOUND) 
+            alpha = std::max(alpha, entry.score);
+        else if (entry.flag == UPPER_BOUND) 
+            beta = std::min(beta, entry.score);
+        if (alpha >= beta) {
+            // std::cerr << "Zobrist is used !  ";
+            return entry.score;
+        }
+    }
+
+
     int val = INF;
+    int original_beta = beta;
     auto moves = generate_sorted_moves(ai_side);
     for (const auto& move : moves){
         int i = move.first , j = move.second;
         board[i][j] = WHITE;//落子
+        update_hash(i, j, WHITE);
         val = std::min(val , max_value(alpha , beta , depth - 1));//调用max
         board[i][j] = EMPTY;//撤销
+        update_hash(i, j, WHITE);
         if(val <= alpha){
             return val;
         }//alpha-beta剪枝
         beta = std::min(beta , val);
     }
+
+    // --- Zobrist 存储 ---
+    TTEntry entry;
+    entry.score = val;
+    entry.depth = depth;
+    if (val >= original_beta) {
+        entry.flag = LOWER_BOUND;
+    } else if (val <= alpha) {
+        entry.flag = UPPER_BOUND;
+    } else {
+        entry.flag = EXACT;
+    }
+    transposition_table[current_hash] = entry;
+    // --- Zobrist 存储结束 ---
+
+
     return val;
 }
 
@@ -303,17 +356,59 @@ int max_value(int alpha , int beta , int depth){
     if(depth == 0 || ter != 2){
         return evaluate(ter == EMPTY ? 2 : ter);//评估当前棋局的分数，当前该黑棋落子
     }
+
+    // --- Zobrist 查询 ---
+    auto it = transposition_table.find(current_hash);
+    if (it != transposition_table.end() && it->second.depth >= depth) {
+        TTEntry entry = it->second;
+        if (entry.flag == EXACT) {
+            // std::cerr << "Zobrist is used !  ";
+            return entry.score;
+        }
+        if (entry.flag == LOWER_BOUND) 
+            alpha = std::max(alpha, entry.score);
+        else if (entry.flag == UPPER_BOUND) 
+            beta = std::min(beta, entry.score);
+        if (alpha >= beta) {
+            // std::cerr << "Zobrist is used !  ";
+            return entry.score;
+        }
+    }
+    // --- Zobrist 查询结束 ---
+
+
     int val = -INF;
+    int original_alpha = alpha;
     auto moves = generate_sorted_moves(ai_side);
     for (const auto& move : moves) {
         int i = move.first , j = move.second;
         board[i][j] = BLACK;//落子
+        update_hash(i, j, BLACK);
         val = std::max(val , min_value(alpha , beta , depth - 1));//调用max
         board[i][j] = EMPTY;//撤销
+        update_hash(i, j, BLACK);
         if(val >= beta){
             return val;
         }//alpha-beta剪枝
         alpha = std::max(alpha , val);
+    }   
+
+
+    // --- Zobrist 存储 ---
+    TTEntry entry;
+    entry.score = val;
+    entry.depth = depth;
+    if (val <= original_alpha) {
+        entry.flag = UPPER_BOUND;
+    } else if (val >= beta) {
+        entry.flag = LOWER_BOUND;
+    } else {
+        entry.flag = EXACT;
     }
+    transposition_table[current_hash] = entry;
+    // --- Zobrist 存储结束 ---
+
+
+
     return val;
 }
