@@ -19,7 +19,7 @@ std::string ai_name = "Smiling_AI";
 int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
-const int DEP = 5;//depth接口，表示搜索深度
+const int DEP = 6;//depth接口，表示搜索深度
 
 enum Cell {
     EMPTY = -1,
@@ -41,7 +41,7 @@ int max_value(int alpha , int beta , int depth);
 int winner();
 
 void init() {
-	memset(board, EMPTY, sizeof(board));
+    memset(board, EMPTY, sizeof(board));
     // srand(time(NULL));
 }
 
@@ -176,10 +176,11 @@ std::pair<int, int> action(std::pair<int, int> loc) {
 
     std::cerr << "current_turn is " << current_turn << std::endl ; 
 
-    // --- 回合 1: 我方是先手 (黑棋)，下在天元 ---
+    // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
-        board[7][7] = ai_side;
-        return {7, 7};
+        auto random = getRandom(); 
+        board[random.first][random.second] = ai_side;
+        return random;
     }
 
     // --- 回合 2: 我方是后手 (白棋)，决定是否交换 ---
@@ -235,52 +236,43 @@ std::pair<int , int> Minimax(){
     std::pair<int , int> res = {-1 , -1};
     int depth = DEP;
 
-    
-   auto moves = generate_sorted_moves(ai_side);
+    auto moves = generate_sorted_moves(ai_side);
     //如果我的ai执黑子，我想让结果最大
     if(ai_side == 0){
         int val = -INF;
         for (const auto& move : moves) {
-            
-        int i = move.first , j = move.second;
-                
-                    board[i][j] = BLACK;//落子
-                    int move_value = min_value(alpha , beta , depth);//调用min
-                    board[i][j] = EMPTY;//撤销
-                    if(move_value > val){
-                        val = move_value;
-                        res = {i , j};
-                        alpha = std::max(alpha , val);
-                    }
-                    if (alpha >= beta) {
-                        break; // Beta剪枝
-                    }
-                    std::cerr << i << " " << j << " score: " << move_value << std::endl;
-                
-            
+            int i = move.first , j = move.second;
+            board[i][j] = BLACK;//落子
+            int move_value = min_value(alpha , beta , depth - 1);//调用min
+            board[i][j] = EMPTY;//撤销
+            if(move_value > val){
+                val = move_value;
+                res = {i , j};
+                alpha = std::max(alpha , val);
+            }
+            if (alpha >= beta) {
+                break; // Beta剪枝
+            }
+            std::cerr << i << " " << j << " score: " << move_value << std::endl;
         }
         return res;
     }else{
-    //如果我的ai执白子，我想让结果最小
+        //如果我的ai执白子，我想让结果最小
         int val = INF;
         for (const auto& move : moves) {
-            
-        int i = move.first , j = move.second;
-                
-                    board[i][j] = WHITE;//落子
-                    int move_value = max_value(alpha , beta , depth);//调用min
-                    board[i][j] = EMPTY;//撤销
-                    if(move_value < val){
-                        val = move_value;
-                        res = {i , j};
-                        beta = std::min(beta , val);
-                    }
-                    if (alpha >= beta) {
-                        break; // Alpha剪枝
-                    }
-                        std::cerr << i << " " << j << " score: " << move_value << std::endl;
-                
-            
+            int i = move.first , j = move.second;
+            board[i][j] = WHITE;//落子
+            int move_value = max_value(alpha , beta , depth - 1);//调用min
+            board[i][j] = EMPTY;//撤销
+            if(move_value < val){
+                val = move_value;
+                res = {i , j};
+                beta = std::min(beta , val);
+            }
+            if (alpha >= beta) {
+                break; // Alpha剪枝
+            }
+            std::cerr << i << " " << j << " score: " << move_value << std::endl;
         }
         return res;
     }
@@ -295,14 +287,13 @@ int min_value(int alpha , int beta , int depth){
     auto moves = generate_sorted_moves(ai_side);
     for (const auto& move : moves){
         int i = move.first , j = move.second;
-            board[i][j] = WHITE;//落子
-            val = std::min(val , max_value(alpha , beta , depth - 1));//调用max
-            board[i][j] = EMPTY;//撤销
-            if(val <= alpha){
-                return val;
-            }//alpha-beta剪枝
-            beta = std::min(beta , val);
-        
+        board[i][j] = WHITE;//落子
+        val = std::min(val , max_value(alpha , beta , depth - 1));//调用max
+        board[i][j] = EMPTY;//撤销
+        if(val <= alpha){
+            return val;
+        }//alpha-beta剪枝
+        beta = std::min(beta , val);
     }
     return val;
 }
@@ -316,14 +307,13 @@ int max_value(int alpha , int beta , int depth){
     auto moves = generate_sorted_moves(ai_side);
     for (const auto& move : moves) {
         int i = move.first , j = move.second;
-            board[i][j] = BLACK;//落子
-            val = std::max(val , min_value(alpha , beta , depth - 1));//调用max
-            board[i][j] = EMPTY;//撤销
-            if(val >= beta){
-                return val;
-            }//alpha-beta剪枝
-            alpha = std::max(alpha , val);
-        
+        board[i][j] = BLACK;//落子
+        val = std::max(val , min_value(alpha , beta , depth - 1));//调用max
+        board[i][j] = EMPTY;//撤销
+        if(val >= beta){
+            return val;
+        }//alpha-beta剪枝
+        alpha = std::max(alpha , val);
     }
     return val;
 }
