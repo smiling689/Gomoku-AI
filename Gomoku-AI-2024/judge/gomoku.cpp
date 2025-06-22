@@ -1,7 +1,9 @@
-//g++ judge/gomoku.cpp judge/my_eval.cpp -o gomoku           编译
-//python judge/judge.py ./gomoku ./baseline                  时，我的ai是ai0
+// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp -o gomoku           编译
+// python judge/judge.py ./gomoku ./baseline                                 时，我的ai是ai0(先手，黑棋)
+// python judge/judge.py ./baseline ./gomoku                                 时，我的ai是ai1(后手，白棋)
 #include "AIController.h"
 #include "my_eval.h"
+#include "flip.h"
 #include <utility>
 #include <cstring>
 #include <climits>
@@ -148,7 +150,7 @@ int count_white() {
     return count;
 }
 
-void flip(){
+void flip_board(){
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
             if (board[i][j] == BLACK) {
@@ -182,14 +184,21 @@ std::pair<int, int> action(std::pair<int, int> loc) {
 
     // --- 回合 2: 我方是后手 (白棋)，决定是否交换 ---
     if (ai_side == WHITE && black == 2 && white == 1) {
-        std::cerr << "Smiling_AI: I choose to SWAP sides!" << std::endl;
-        flip();
-        return {-1, -1};
+        int no_flip = no_flip_score();
+        int flip = flip_score();
+        if (flip < no_flip) {
+            std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
+            // 确认要换手，执行真正的翻转并返回
+            flip_board();
+            return {-1, -1};
+        } else {
+            std::cerr << "Smiling_AI: Not swapping is better. Playing regular move." << std::endl;
+        }
     }
 
     if (ai_side == BLACK && black == 2 && white == 1 && loc.first == -1) {
         std::cerr << "Smiling_AI: Opponent swapped. " << std::endl;
-        flip();
+        flip_board();
     }
 
     // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
