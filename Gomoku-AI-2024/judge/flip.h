@@ -5,7 +5,7 @@
 
 extern int board[15][15];
 
-extern std::pair<int , int> Minimax();
+extern std::pair<int , int> deepingMinimax();
 
 extern int evaluate(int ter);
 

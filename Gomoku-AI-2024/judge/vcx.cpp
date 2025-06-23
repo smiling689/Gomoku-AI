@@ -1,4 +1,3 @@
-// smiling689/gomoku-ai/Gomoku-AI-084a86008736698bc8c92e1ecc4299b7d4a57e2e/Gomoku-AI-2024/judge/vcx.cpp
 #include "vcx.h"
 #include <iostream>
 #include <vector>
@@ -16,8 +15,6 @@ const int VCX_DEP = 12;
 
 enum Cell { EMPTY = -1, BLACK = 0, WHITE = 1 };
 enum Threat { NONE, WIN, OPEN_FOUR, DOUBLE_THREE, FOUR_THREE, FOUR, OPEN_THREE, THREE };
-
-// 辅助函数：检查坐标是否合法
 
 // “一步制胜”检测函数
 std::pair<int, int> find_win_in_one_move(int player) {

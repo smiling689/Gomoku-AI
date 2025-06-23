@@ -12,13 +12,14 @@
 #include <ctime>
 #include <algorithm>
 #include "my_eval_hash.h"
-// #define DEBUG_MODE //是否开启调试模式
+#define DEBUG_MODE //是否开启调试模式
 #define timing
 // #define pos_val
 
 // #define string_eval //使用string.find进行查找评估
 // #define vector_eval //使用vector对每种棋型找一遍来评估
 #define hash_eval //构建哈希表来评估，滑动窗口
+// #define deeping //迭代加深接口
 
 
 
@@ -33,7 +34,7 @@ int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
-const int save_moves = 6;//从生成的可能moves中选前若干个进行计算
+const int save_moves = 8;//从生成的可能moves中选前若干个进行计算
 
 
 enum Cell {
@@ -43,6 +44,11 @@ enum Cell {
 };
 
 struct MoveScore {
+    std::pair<int, int> move;
+    int score;
+};
+
+struct MinimaxResult {
     std::pair<int, int> move;
     int score;
 };
@@ -68,7 +74,9 @@ const int positional_weights[15][15] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-std::pair<int , int> Minimax();
+MinimaxResult Minimax(int depth);
+
+std::pair<int , int> deepingMinimax();
 
 int min_value(int alpha , int beta , int depth);
 
@@ -241,7 +249,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
         auto random = getRandom(); 
-        // std::pair<int , int > random = {4, 11};
+        // std::pair<int , int > random = {0, 0};
         i = random.first , j = random.second;
         #ifdef mizi
             int score_before = update_score_for_position(i, j);
@@ -269,7 +277,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
 
     if (current_turn == 3) {
         auto random = getRandom(); 
-        // std::pair<int , int > random = {12, 12};
+        // std::pair<int , int > random = {3, 1};
         i = random.first , j = random.second;
         #ifdef mizi
             int score_before = update_score_for_position(i, j);
@@ -365,7 +373,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
  
 
     // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
-    std::pair<int, int> my_move = Minimax();
+    std::pair<int, int> my_move = deepingMinimax();
     if (my_move.first != -1 && my_move.second != -1) {
         i = my_move.first , j = my_move.second;
         #ifdef mizi
@@ -416,13 +424,66 @@ int terminal(){
     return EMPTY;
 }
 
-std::pair<int , int> Minimax(){
+
+// 优化的迭代加深 Minimax
+std::pair<int , int> deepingMinimax() {
+    #ifdef deeping 
+
+    clock_t start_time = clock();
+    
+    MinimaxResult best_result = {{-1, -1}, 0};
+
+    for (int depth = 2; depth <= DEP; depth += 2) {
+        auto current_result = Minimax(depth);
+
+        // 无论如何，都使用更深层次搜索的结果来更新最佳走法
+        best_result = current_result;
+
+        #ifdef DEBUG_MODE
+        std::cerr << "Depth " << depth << " best move: (" << best_result.move.first << "," << best_result.move.second << ") with score " << best_result.score << std::endl;
+        #endif
+
+        // 提前发现胜利：如果找到必胜局(连五)，就不再搜索更深层
+        const int WIN_SCORE = 5000000; 
+        if (ai_side == 0 && best_result.score >= WIN_SCORE) {
+            #ifdef DEBUG_MODE
+            std::cerr << "Found winning move for BLACK at depth " << depth << ". Stopping search." << std::endl;
+            #endif
+            break; 
+        }
+        if (ai_side == 1 && best_result.score <= -WIN_SCORE) {
+             #ifdef DEBUG_MODE
+            std::cerr << "Found winning move for WHITE at depth " << depth << ". Stopping search." << std::endl;
+            #endif
+            break;
+        }
+
+        // 加入超时判断，如果时间快用完了，就跳出循环，返回当前找到的最佳结果（好像没用？考察9,7  5,4）
+        clock_t end_time = clock();
+        if (double(end_time - start_time) / CLOCKS_PER_SEC > 4.5) { 
+            #ifdef DEBUG_MODE
+            std::cerr << "时间不够，跳出迭代加深" << std::endl;
+            #endif
+            break;
+        }
+    }
+    
+    // 返回从最深已完成的搜索中找到的最佳走法
+    return best_result.move;
+    
+    #else
+    // 如果不使用迭代加深，则直接调用最大深度搜索
+    return Minimax(DEP).move;
+    #endif
+}
+
+MinimaxResult Minimax(int depth){
     int alpha = -INF;
     int beta = INF;
     std::pair<int , int> res = {-1 , -1};
-    int depth = DEP;
 
     auto moves = generate_sorted_moves(ai_side);
+    
     //如果我的ai执黑子，我想让结果最大
     if(ai_side == 0){
         int val = -INF;
@@ -465,7 +526,7 @@ std::pair<int , int> Minimax(){
             std::cerr << i << " " << j << " score: " << move_value << std::endl;
             #endif
         }
-        return res;
+        return {res , val};
     }else{
         //如果我的ai执白子，我想让结果最小
         int val = INF;
@@ -509,7 +570,7 @@ std::pair<int , int> Minimax(){
             std::cerr << i << " " << j << " score: " << move_value << std::endl;
             #endif
         }
-        return res;
+        return {res , val};
     }
 }
 
@@ -667,8 +728,6 @@ int max_value(int alpha , int beta , int depth){
     }
     transposition_table[current_hash] = entry;
     // --- Zobrist 存储结束 ---
-
-
 
     return val;
 }

@@ -29,7 +29,7 @@ int flip_score() {
 
 int no_flip_score() {
     int score_no_flip;
-    std::pair<int, int> best_move = Minimax(); // 找到白棋的最佳下法
+    std::pair<int, int> best_move = deepingMinimax(); // 找到白棋的最佳下法
 
     board[best_move.first][best_move.second] = WHITE; // ai_side is 1 (WHITE)
     score_no_flip = evaluate(2); // 获取局面分
