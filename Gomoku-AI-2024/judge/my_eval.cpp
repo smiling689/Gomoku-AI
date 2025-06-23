@@ -292,53 +292,10 @@ int winner(){
     return EMPTY;
 }
 
+//用于实现启发式评估函数
 int score_move(int r, int c, int color) {
-    int score = 0;
-    std::string line_str;
-    int opponent_color = 1 - color;
-
-    // 为了评估，我们临时在棋盘上落子
-    board[r][c] = color;
-
-    // 1. 检查行
-    line_str = "";
-    for (int j = 0; j < SIZE; ++j) {
-        if (board[r][j] == color) line_str += '1';
-        else if (board[r][j] == EMPTY) line_str += '0';
-        else line_str += '-';
-    }
-    score += score_line(line_str);
-
-    // 2. 检查列
-    line_str = "";
-    for (int i = 0; i < SIZE; ++i) {
-        if (board[i][c] == color) line_str += '1';
-        else if (board[i][c] == EMPTY) line_str += '0';
-        else line_str += '-';
-    }
-    score += score_line(line_str);
-
-    // 3. 检查对角线 (左上到右下)
-    line_str = "";
-    for (int i = -std::min(r, c), end = std::min(SIZE - 1 - r, SIZE - 1 - c); i <= end; ++i) {
-        if (board[r + i][c + i] == color) line_str += '1';
-        else if (board[r + i][c + i] == EMPTY) line_str += '0';
-        else line_str += '-';
-    }
-    score += score_line(line_str);
-
-    // 4. 检查反对角线 (右上到左下)
-    line_str = "";
-    for (int i = -std::min(r, SIZE - 1 - c), end = std::min(SIZE - 1 - r, c); i <= end; ++i) {
-        if (board[r + i][c - i] == color) line_str += '1';
-        else if (board[r + i][c - i] == EMPTY) line_str += '0';
-        else line_str += '-';
-    }
-    score += score_line(line_str);
-
-    // 评估完毕，撤销落子
-    board[r][c] = EMPTY;
-
+    board[r][c] = color; // 临时落子
+    int score = update_score_pos_color(r, c, color);
+    board[r][c] = EMPTY; // 撤销落子
     return score;
 }
-

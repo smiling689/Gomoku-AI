@@ -1,8 +1,7 @@
-// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp judge/zobrist.cpp judge/vcx.cpp -o gomoku           编译
-// python judge/judge.py ./gomoku ./baseline                                                                 时，我的ai是ai0(先手，黑棋)
-// python judge/judge.py ./baseline ./gomoku                                                                 时，我的ai是ai1(后手，白棋)
+// g++ judge/gomoku.cpp judge/my_eval_hash.cpp judge/flip.cpp judge/zobrist.cpp judge/vcx.cpp -o gomoku           编译
+// python judge/judge.py ./gomoku ./baseline                                                                      时，我的ai是ai0(先手，黑棋)
+// python judge/judge.py ./baseline ./gomoku                                                                      时，我的ai是ai1(后手，白棋)
 #include "AIController.h"
-#include "my_eval.h"
 #include "zobrist.h"
 #include "flip.h"
 #include "vcx.h"
@@ -12,8 +11,15 @@
 #include <vector>
 #include <ctime>
 #include <algorithm>
-// #define DEBUG_MODE //是否开启调试模式
-#define time
+#include "my_eval.h"
+#define DEBUG_MODE //是否开启调试模式
+#define timing
+
+// #define string_eval //使用string.find进行查找评估
+// #define vector_eval //使用vector对每种棋型找一遍来评估
+#define hash_eval //构建哈希表来评估，滑动窗口
+
+
 
 
 extern int ai_side; //0: black, 1: white
@@ -25,7 +31,7 @@ std::string ai_name = "Smiling_AI";
 int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
-const int DEP = 5;//depth接口，表示搜索深度
+const int DEP = 8;//depth接口，表示搜索深度
 
 
 enum Cell {
@@ -46,10 +52,12 @@ int min_value(int alpha , int beta , int depth);
 int max_value(int alpha , int beta , int depth);
 
 void init() {
+        srand(time(0));
     transposition_table.clear(); 
     memset(board, EMPTY, sizeof(board));
     init_zobrist();
-    // srand(time(NULL));
+    // init_pattern_db();
+
 }
 
 // loc is the action of your opponent
@@ -128,6 +136,8 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player) {
     for (const auto& scored_move : scored_moves) {
         sorted_moves.push_back(scored_move.move);
     }
+    size_t count = std::min(static_cast<size_t>(10), sorted_moves.size());
+    sorted_moves.assign(sorted_moves.begin() , sorted_moves.begin() + count);
 
     return sorted_moves;
 }
@@ -174,7 +184,7 @@ void flip_board(){
 }
 
 std::pair<int, int> action(std::pair<int, int> loc) {
-    #ifdef time
+    #ifdef timing
         clock_t start = clock();
         #endif
         int i = loc.first , j = loc.second;
@@ -211,7 +221,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
             int score_after = update_score_for_position(i, j);
             current_total_score += (score_after - score_before);
         #endif
-        #ifdef time
+        #ifdef timing
         clock_t end = clock();
         double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
         std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
@@ -230,7 +240,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
             // 确认要换手，执行真正的翻转并返回
             flip_board();
             current_hash = calculate_hash();
-            #ifdef time
+            #ifdef timing
         clock_t end = clock();
         double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
         std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
@@ -272,7 +282,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         // std::throw runtime_error("Minimax_wrong");
     }
 
-    #ifdef time
+    #ifdef timing
         clock_t end = clock();
         double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
         std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
