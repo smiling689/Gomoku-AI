@@ -12,7 +12,7 @@
 #include <ctime>
 #include <algorithm>
 #include "my_eval_hash.h"
-#define DEBUG_MODE //是否开启调试模式
+// #define DEBUG_MODE //是否开启调试模式
 #define timing
 
 // #define string_eval //使用string.find进行查找评估
@@ -32,7 +32,7 @@ int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
-const int save_moves = 15;//从生成的可能moves中选前若干个进行计算
+const int save_moves = 10;//从生成的可能moves中选前若干个进行计算
 
 
 enum Cell {
@@ -212,6 +212,28 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
         auto random = getRandom(); 
+        // std::pair<int , int > random = {4, 11};
+        i = random.first , j = random.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif 
+        board[random.first][random.second] = ai_side;
+        update_hash(random.first, random.second, ai_side);
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
+        #ifdef timing
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
+        return random;
+    }
+
+    if (current_turn == 3) {
+        auto random = getRandom(); 
+        // std::pair<int , int > random = {12, 12};
         i = random.first , j = random.second;
         #ifdef mizi
             int score_before = update_score_for_position(i, j);
@@ -262,7 +284,35 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         current_hash = calculate_hash();
     }
 
-    // transposition_table.clear(); 
+    // ================== 算杀逻辑开始 ==================
+    std::pair<int, int> vcx_move = find_victory(VCX_DEP);
+    if (vcx_move.first != -1) {
+        #ifdef DEBUG_MODE
+        std::cerr << "Smiling_AI: VCX found a winning move at (" << vcx_move.first << ", " << vcx_move.second << ")" << std::endl;
+        #endif
+        
+        i = vcx_move.first;
+        j = vcx_move.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
+        board[i][j] = ai_side;
+        update_hash(i, j, ai_side);
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
+        
+        #ifdef timing
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "VCX耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
+
+        return vcx_move;
+    }
+    // ================== 算杀逻辑结束 ==================
+ 
 
     // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
     std::pair<int, int> my_move = Minimax();

@@ -6,6 +6,8 @@
 extern int board[15][15];
 extern const int VCX_DEP;
 
+extern bool is_valid(int r , int c);
+
 
 std::pair<int , int> find_victory(int dep);
 
