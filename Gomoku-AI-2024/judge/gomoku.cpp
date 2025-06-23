@@ -11,7 +11,7 @@
 #include <vector>
 #include <ctime>
 #include <algorithm>
-#include "my_eval.h"
+#include "my_eval_hash.h"
 #define DEBUG_MODE //是否开启调试模式
 #define timing
 
@@ -32,6 +32,7 @@ int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
+const int save_moves = 15;//从生成的可能moves中选前若干个进行计算
 
 
 enum Cell {
@@ -56,7 +57,7 @@ void init() {
     transposition_table.clear(); 
     memset(board, EMPTY, sizeof(board));
     init_zobrist();
-    // init_pattern_db();
+    init_pattern_db();
 
 }
 
@@ -136,7 +137,7 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player) {
     for (const auto& scored_move : scored_moves) {
         sorted_moves.push_back(scored_move.move);
     }
-    size_t count = std::min(static_cast<size_t>(10), sorted_moves.size());
+    size_t count = std::min(static_cast<size_t>(save_moves), sorted_moves.size());
     sorted_moves.assign(sorted_moves.begin() , sorted_moves.begin() + count);
 
     return sorted_moves;

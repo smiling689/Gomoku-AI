@@ -3,7 +3,7 @@
 
 #include<vector>
 #include<unordered_map>
-#define mizi
+// #define mizi
 
 extern int board[15][15];
 extern long long current_total_score;
