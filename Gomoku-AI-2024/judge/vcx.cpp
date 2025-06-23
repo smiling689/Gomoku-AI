@@ -12,7 +12,7 @@ extern int ai_side;
 
 // 常量定义
 const int BOARD_SIZE = 15;
-const int VCX_DEP = 10;
+const int VCX_DEP = 12;
 
 enum Cell { EMPTY = -1, BLACK = 0, WHITE = 1 };
 enum Threat { NONE, WIN, OPEN_FOUR, DOUBLE_THREE, FOUR_THREE, FOUR, OPEN_THREE, THREE };

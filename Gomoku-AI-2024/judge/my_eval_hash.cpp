@@ -26,6 +26,7 @@ enum PatternToken {
     P_EMPTY = 3
 };
 
+
 //棋型分数定义
 const int CHENG_5_SCORE = 5000000;
 const int HUO_4_SCORE = 100000;
@@ -298,7 +299,7 @@ int update_score_pos_color(int r, int c , int color) {
 int update_score_for_position(int r, int c){
     int black_score = update_score_pos_color(r , c , BLACK);
     int white_score = update_score_pos_color(r , c,  WHITE);
-    return black_score - white_score;
+    return black_score - white_score ;
 }
 
 

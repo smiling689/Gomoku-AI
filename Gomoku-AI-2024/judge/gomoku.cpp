@@ -14,6 +14,7 @@
 #include "my_eval_hash.h"
 // #define DEBUG_MODE //是否开启调试模式
 #define timing
+// #define pos_val
 
 // #define string_eval //使用string.find进行查找评估
 // #define vector_eval //使用vector对每种棋型找一遍来评估
@@ -32,7 +33,7 @@ int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
-const int save_moves = 10;//从生成的可能moves中选前若干个进行计算
+const int save_moves = 6;//从生成的可能moves中选前若干个进行计算
 
 
 enum Cell {
@@ -44,6 +45,27 @@ enum Cell {
 struct MoveScore {
     std::pair<int, int> move;
     int score;
+};
+
+const int POSITION_WEIGHT_FACTOR = 1;
+
+// 15x15 位置权重矩阵
+const int positional_weights[15][15] = {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+    {0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0},
+    {0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 5, 6, 6, 6, 5, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 5, 6, 6, 6, 5, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 3, 2, 1, 0},
+    {0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 0},
+    {0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0},
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 std::pair<int , int> Minimax();
@@ -196,6 +218,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         board[i][j] = 1 - ai_side;
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         update_hash(loc.first, loc.second, 1 - ai_side);
@@ -221,6 +250,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         update_hash(random.first, random.second, ai_side);
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         #ifdef timing
@@ -242,6 +278,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         update_hash(random.first, random.second, ai_side);
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         #ifdef timing
@@ -300,6 +343,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         update_hash(i, j, ai_side);
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         
@@ -326,6 +376,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         update_hash(my_move.first, my_move.second, ai_side);
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
     }else{
@@ -377,6 +434,13 @@ std::pair<int , int> Minimax(){
             board[i][j] = BLACK;//落子
             #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
             update_hash(i, j, BLACK);
@@ -413,6 +477,13 @@ std::pair<int , int> Minimax(){
             board[i][j] = WHITE;//落子
             #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
             update_hash(i, j, WHITE);
@@ -477,6 +548,13 @@ int min_value(int alpha , int beta , int depth){
         board[i][j] = WHITE;//落子
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         update_hash(i, j, WHITE);
@@ -550,6 +628,13 @@ int max_value(int alpha , int beta , int depth){
         board[i][j] = BLACK;//落子
         #ifdef mizi
             int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
             current_total_score += (score_after - score_before);
         #endif
         update_hash(i, j, BLACK);
