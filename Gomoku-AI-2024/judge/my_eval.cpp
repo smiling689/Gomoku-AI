@@ -6,6 +6,9 @@
 const int SIZE = 15;
 extern int board[15][15]; 
 
+// 新增一个全局变量，用于实时存储当前棋局的评估分数
+long long current_total_score = 0;
+
 enum Cell {
     EMPTY = -1,
     BLACK = 0,
@@ -141,6 +144,74 @@ int calculate_score(int color) {
     return total_score;
 }
 
+// 完全重新计算棋盘分数，用于初始化和交换后
+void recalculate_full_board_score() {
+    int black_score = calculate_score(BLACK);
+    int white_score = calculate_score(WHITE);
+    current_total_score = black_score - white_score;
+}
+
+// 局部更新评估分数
+int update_score_pos_color(int i, int j , int color) {
+    int total_score = 0;
+
+    // 1. 横线
+    std::string line_str_1;
+    for (int c = 0; c < SIZE; ++c) {
+        if (board[i][c] == color) line_str_1 += '1';
+        else if (board[i][c] == EMPTY) line_str_1 += '0';
+        else line_str_1 += '-';
+    }
+    total_score += score_line(line_str_1);
+
+    // 2. 竖线
+    std::string line_str_2;
+    for (int r = 0; r < SIZE; ++r) {
+
+
+        if (board[r][j] == color) line_str_2 += '1';
+        else if (board[r][j] == EMPTY) line_str_2 += '0';
+        else line_str_2 += '-';
+
+
+    }
+    total_score += score_line(line_str_2);
+
+    // 3. 主对角线 '\'
+    int r_start = i - std::min(i, j);
+    int c_start = j - std::min(i, j);
+    std::string line_str_3;
+    for (int r = r_start, c = c_start; r < SIZE && c < SIZE; ++r, ++c) {
+        if (board[r][c] == color) line_str_3 += '1';
+        else if (board[r][c] == EMPTY) line_str_3 += '0';
+        else line_str_3 += '-';
+    }
+    if (line_str_3.length() >= 5) {
+        total_score += score_line(line_str_3);
+    }
+
+
+    // 4. 副对角线 '/'
+    std::string line_str_4;
+    r_start = i - std::min(i, SIZE - 1 - j);
+    c_start = j + std::min(i, SIZE - 1 - j);
+    for (int r = r_start, c = c_start; r < SIZE && c >= 0; ++r, --c) {
+        if (board[r][c] == color) line_str_4 += '1';
+        else if (board[r][c] == EMPTY) line_str_4 += '0';
+        else line_str_4 += '-';
+    }
+    if (line_str_4.length() >= 5) {
+        total_score += score_line(line_str_4);
+    }
+    return total_score;
+}
+
+int update_score_for_position(int r, int c){
+    int black_score = update_score_pos_color(r , c , BLACK);
+    int white_score = update_score_pos_color(r , c,  WHITE);
+    return black_score - white_score;
+}
+
 
 
 int eval() {
@@ -154,20 +225,26 @@ int eval() {
     return black_score - white_score;
 }  
 
-    
+
 
 /**
- * 评估函数的主接口
- * ter:棋局的终止状态。-1: 平局, 0: 黑胜, 1: 白胜, 2: 未结束。
- * 返回对当前棋局的评分。
- */
+* 评估函数的主接口
+* ter:棋局的终止状态。-1: 平局, 0: 黑胜, 1: 白胜, 2: 未结束。
+* 返回对当前棋局的评分。
+*/
 int evaluate(int ter) {
     if (ter == EMPTY) { // 平局
-        return 0;
-    }
+                       return 0;
+                      }
+
+    #ifdef mizi
+    return current_total_score;
+    #endif
     int score = eval();
     // 进行全盘局面评估
     return score;
+
+
 }
 
 
@@ -253,7 +330,7 @@ int score_move(int r, int c, int color) {
     // 4. 检查反对角线 (右上到左下)
     line_str = "";
     for (int i = -std::min(r, SIZE - 1 - c), end = std::min(SIZE - 1 - r, c); i <= end; ++i) {
-         if (board[r + i][c - i] == color) line_str += '1';
+        if (board[r + i][c - i] == color) line_str += '1';
         else if (board[r + i][c - i] == EMPTY) line_str += '0';
         else line_str += '-';
     }
@@ -264,3 +341,4 @@ int score_move(int r, int c, int color) {
 
     return score;
 }
+

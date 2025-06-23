@@ -1,15 +1,20 @@
-// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp judge/zobrist.cpp -o gomoku           编译
-// python judge/judge.py ./gomoku ./baseline                                                   时，我的ai是ai0(先手，黑棋)
-// python judge/judge.py ./baseline ./gomoku                                                   时，我的ai是ai1(后手，白棋)
+// g++ judge/gomoku.cpp judge/my_eval.cpp judge/flip.cpp judge/zobrist.cpp judge/vcx.cpp -o gomoku           编译
+// python judge/judge.py ./gomoku ./baseline                                                                 时，我的ai是ai0(先手，黑棋)
+// python judge/judge.py ./baseline ./gomoku                                                                 时，我的ai是ai1(后手，白棋)
 #include "AIController.h"
 #include "my_eval.h"
 #include "zobrist.h"
 #include "flip.h"
+#include "vcx.h"
 #include <utility>
 #include <cstring>
 #include <climits>
 #include <vector>
+#include <ctime>
 #include <algorithm>
+// #define DEBUG_MODE //是否开启调试模式
+#define time
+
 
 extern int ai_side; //0: black, 1: white
 //ai_side == 0：代表AI执黑棋。
@@ -20,7 +25,8 @@ std::string ai_name = "Smiling_AI";
 int turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
-const int DEP = 6;//depth接口，表示搜索深度
+const int DEP = 5;//depth接口，表示搜索深度
+
 
 enum Cell {
     EMPTY = -1,
@@ -38,8 +44,6 @@ std::pair<int , int> Minimax();
 int min_value(int alpha , int beta , int depth);
 
 int max_value(int alpha , int beta , int depth);
-
-int winner();
 
 void init() {
     transposition_table.clear(); 
@@ -164,11 +168,25 @@ void flip_board(){
             }
         }
     }
+    #ifdef mizi
+    recalculate_full_board_score();
+    #endif
 }
 
 std::pair<int, int> action(std::pair<int, int> loc) {
+    #ifdef time
+        clock_t start = clock();
+        #endif
+        int i = loc.first , j = loc.second;
     if (loc.first != -1 && loc.second != -1) {
-        board[loc.first][loc.second] = 1 - ai_side;
+         #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif 
+        board[i][j] = 1 - ai_side;
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
         update_hash(loc.first, loc.second, 1 - ai_side);
     }
 
@@ -177,14 +195,27 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     int black = count_black();
     int white = count_white();
     int current_turn = black + white + 1;
-
+    #ifdef DEBUG_MODE
     std::cerr << "current_turn is " << current_turn << std::endl ; 
-
+    #endif
     // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
         auto random = getRandom(); 
+        i = random.first , j = random.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif 
         board[random.first][random.second] = ai_side;
         update_hash(random.first, random.second, ai_side);
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
+        #ifdef time
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
         return random;
     }
 
@@ -193,18 +224,29 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         int no_flip = no_flip_score();
         int flip = flip_score();
         if (flip < no_flip) {
+            #ifdef DEBUG_MODE
             std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
+            #endif
             // 确认要换手，执行真正的翻转并返回
             flip_board();
             current_hash = calculate_hash();
+            #ifdef time
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
             return {-1, -1};
         } else {
+            #ifdef DEBUG_MODE
             std::cerr << "Smiling_AI: Not swapping is better. Playing regular move." << std::endl;
+            #endif
         }
     }
 
     if (ai_side == BLACK && black == 2 && white == 1 && loc.first == -1) {
+        #ifdef DEBUG_MODE
         std::cerr << "Smiling_AI: Opponent swapped. " << std::endl;
+        #endif
         flip_board();
         current_hash = calculate_hash();
     }
@@ -214,12 +256,27 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
     std::pair<int, int> my_move = Minimax();
     if (my_move.first != -1 && my_move.second != -1) {
+        i = my_move.first , j = my_move.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
         board[my_move.first][my_move.second] = ai_side;
+        
         update_hash(my_move.first, my_move.second, ai_side);
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
     }else{
         std::cerr << "MiniMax wrong! -1,-1" << std::endl;
         // std::throw runtime_error("Minimax_wrong");
     }
+
+    #ifdef time
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
 
     return my_move;
 }
@@ -253,11 +310,21 @@ std::pair<int , int> Minimax(){
         int val = -INF;
         for (const auto& move : moves) {
             int i = move.first , j = move.second;
+            #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
             board[i][j] = BLACK;//落子
+            #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
             update_hash(i, j, BLACK);
             int move_value = min_value(alpha , beta , depth - 1);//调用min
             board[i][j] = EMPTY;//撤销
             update_hash(i, j, BLACK);
+            #ifdef mizi
+        current_total_score -= (score_after - score_before);
+        #endif
             if(move_value > val){
                 val = move_value;
                 res = {i , j};
@@ -266,7 +333,12 @@ std::pair<int , int> Minimax(){
             if (alpha >= beta) {
                 break; // Beta剪枝
             }
+            if(alpha >= 10000000){
+                break;//必胜剪枝
+            }
+            #ifdef DEBUG_MODE
             std::cerr << i << " " << j << " score: " << move_value << std::endl;
+            #endif
         }
         return res;
     }else{
@@ -274,11 +346,22 @@ std::pair<int , int> Minimax(){
         int val = INF;
         for (const auto& move : moves) {
             int i = move.first , j = move.second;
+            #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
             board[i][j] = WHITE;//落子
+            #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
             update_hash(i, j, WHITE);
             int move_value = max_value(alpha , beta , depth - 1);//调用min
             board[i][j] = EMPTY;//撤销
+            
             update_hash(i, j, WHITE);
+            #ifdef mizi
+        current_total_score -= (score_after - score_before);
+        #endif
             if(move_value < val){
                 val = move_value;
                 res = {i , j};
@@ -287,7 +370,12 @@ std::pair<int , int> Minimax(){
             if (alpha >= beta) {
                 break; // Alpha剪枝
             }
+            if(alpha <= -10000000){
+                break;//必胜剪枝
+            }
+            #ifdef DEBUG_MODE
             std::cerr << i << " " << j << " score: " << move_value << std::endl;
+            #endif
         }
         return res;
     }
@@ -319,17 +407,30 @@ int min_value(int alpha , int beta , int depth){
 
     int val = INF;
     int original_beta = beta;
-    auto moves = generate_sorted_moves(ai_side);
+    auto moves = generate_sorted_moves(WHITE);
     for (const auto& move : moves){
         int i = move.first , j = move.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
         board[i][j] = WHITE;//落子
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
         update_hash(i, j, WHITE);
         val = std::min(val , max_value(alpha , beta , depth - 1));//调用max
         board[i][j] = EMPTY;//撤销
+        #ifdef mizi
+        current_total_score -= (score_after - score_before);
+        #endif
         update_hash(i, j, WHITE);
         if(val <= alpha){
             return val;
         }//alpha-beta剪枝
+        if(val <= -10000000){
+            return val;//必胜剪枝
+        }
         beta = std::min(beta , val);
     }
 
@@ -379,17 +480,30 @@ int max_value(int alpha , int beta , int depth){
 
     int val = -INF;
     int original_alpha = alpha;
-    auto moves = generate_sorted_moves(ai_side);
+    auto moves = generate_sorted_moves(BLACK);
     for (const auto& move : moves) {
         int i = move.first , j = move.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif
         board[i][j] = BLACK;//落子
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            current_total_score += (score_after - score_before);
+        #endif
         update_hash(i, j, BLACK);
         val = std::max(val , min_value(alpha , beta , depth - 1));//调用max
         board[i][j] = EMPTY;//撤销
+        #ifdef mizi
+        current_total_score -= (score_after - score_before);
+        #endif
         update_hash(i, j, BLACK);
         if(val >= beta){
             return val;
         }//alpha-beta剪枝
+        if(val >= 10000000){
+            return val;//必胜剪枝
+        }
         alpha = std::max(alpha , val);
     }   
 

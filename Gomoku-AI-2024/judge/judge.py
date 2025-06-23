@@ -30,7 +30,7 @@ class AI:
     def receive(self):
         return self.proc.stdout.readline().strip().decode()
 
-    @timeout_decorator.timeout(seconds = 500, use_signals = True)
+    @timeout_decorator.timeout(seconds = 50, use_signals = True)
     def init(self):
         if self.human == 0:
             self.proc = subprocess.Popen(self.path,
@@ -39,7 +39,7 @@ class AI:
             self.send(self.id)
             self.name = self.receive()
 
-    @timeout_decorator.timeout(seconds = 500, use_signals = True)
+    @timeout_decorator.timeout(seconds = 50, use_signals = True)
     def action(self, a, b):
         if self.human == 1:
             value = sys.stdin.readline().strip().split(' ')
