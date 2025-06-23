@@ -19,7 +19,7 @@ enum Threat { NONE, WIN, OPEN_FOUR, DOUBLE_THREE, FOUR_THREE, FOUR, OPEN_THREE, 
 
 // 辅助函数：检查坐标是否合法
 
-// ================== 新增：更可靠的“一步制胜”检测函数 ==================
+// “一步制胜”检测函数
 std::pair<int, int> find_win_in_one_move(int player) {
     for (int r = 0; r < BOARD_SIZE; ++r) {
         for (int c = 0; c < BOARD_SIZE; ++c) {
@@ -46,12 +46,12 @@ std::pair<int, int> find_win_in_one_move(int player) {
     }
     return {-1, -1};
 }
-// （保留 analyze_threats 和 find_move_by_threat 的实现，此处省略）
+
 std::map<Threat, int> analyze_threats(int r, int c, int player);
 std::pair<int, int> find_move_by_threat(int player, Threat threat_level);
 
 
-// ================== 算杀主函数接口 - 实现“知难而退”策略 ==================
+// “知难而退”策略
 std::pair<int, int> find_victory(int dep) {
     int opponent_side = 1 - ai_side;
 
@@ -94,12 +94,12 @@ std::pair<int, int> find_victory(int dep) {
         // 检查我方是否有“冲四”的强力反击手段
         auto my_four_move = find_move_by_threat(ai_side, FOUR);
 
-        // **核心逻辑：如果对方有威胁，但我方没有冲四或更强的反击，则情况复杂，交由Minimax处理**
+        // 如果对方有威胁，但我方没有冲四或更强的反击，则情况复杂，交由Minimax处理
         if (my_four_move.first == -1) {
             #ifdef DEBUG_MODE
             std::cerr << "VCX abstained: Opponent has threats, but AI has no decisive counter-attack. Passing to Minimax." << std::endl;
             #endif
-            return {-1, -1}; // **“知难而退”，退出算杀**
+            return {-1, -1}; // “知难而退”，退出算杀
         }
     }
 
@@ -120,8 +120,6 @@ std::pair<int, int> find_victory(int dep) {
 }
 
 
-// ============== 粘贴 analyze_threats 和 find_move_by_threat 的实现 ==============
-// (此部分代码与上一轮相同，为保证文件完整性而粘贴)
 std::map<Threat, int> analyze_threats(int r, int c, int player) {
     if (!is_valid(r, c) || board[r][c] == EMPTY) return {};
     std::map<Threat, int> threats;
