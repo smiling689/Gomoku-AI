@@ -10,9 +10,6 @@ enum Cell {
     WHITE = 1
 };
 
-extern std::pair<int , int> Minimax();
-
-
 extern int evaluate(int ter);
 
 int flip_score() {
@@ -38,3 +35,4 @@ int no_flip_score() {
 
     return score_no_flip;
 }
+

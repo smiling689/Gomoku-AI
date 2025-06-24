@@ -5,8 +5,8 @@ NOTE: AT LEAST one of your testing agents needs to invite RANDOMNESS.
 '''
 
 # g++ Minimax/gomoku.cpp Minimax/my_eval_hash.cpp Minimax/flip.cpp Minimax/zobrist.cpp Minimax/vcx.cpp -o gomoku
-# python Minimax/evaluate.py --agents-path ./gomoku ./baseline --num-plays 128 --num-workers 32
-
+# python Minimax/evaluate.py --agents-path ./gomoku ./baseline --num-plays 128 --num-workers 32 我后手，我翻版
+# python Minimax/evaluate.py --agents-path ./baseline ./gomoku --num-plays 64 --num-workers 32  我先手，应该胜率较高
 
 import argparse
 import numpy as np

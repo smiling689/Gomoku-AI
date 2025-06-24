@@ -28,14 +28,14 @@ enum PatternToken {
 
 
 //棋型分数定义
-const int CHENG_5_SCORE = 5000000;
-const int HUO_4_SCORE = 100000;
-const int CHONG_4_SCORE = 10000;
-const int DAN_HUO_3_SCORE = 8000;   // "单活三"
-const int TIAO_HUO_3_SCORE = 7000;  // "跳活三"
-const int MIAN_3_SCORE = 500;       // "眠三"
-const int HUO_2_SCORE = 50;         // "活二"
-const int MIAN_2_SCORE = 10;        // "眠二"
+const int CHENG_5_SCORE = 5000000;  // "连五"5000000
+const int HUO_4_SCORE = 100000;     // "活四"100000
+const int CHONG_4_SCORE = 10000;    // "冲四"10000
+const int DAN_HUO_3_SCORE = 8000;   // "单活三"8000
+const int TIAO_HUO_3_SCORE = 7000;  // "跳活三"7000
+const int MIAN_3_SCORE = 500;       // "眠三"500
+const int HUO_2_SCORE = 50;         // "活二"50
+const int MIAN_2_SCORE = 10;        // "眠二"10
 
 //棋型字符串，1表示己方，0表示空，-表示对方或者墙壁
 const std::string CHENG_5_STRING = "11111";

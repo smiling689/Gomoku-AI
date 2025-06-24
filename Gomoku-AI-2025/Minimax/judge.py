@@ -51,7 +51,17 @@ class Board:
         self.board = -np.ones((15, 15), dtype=int)
 
     def show(self):
+        # 打印列号（0-14）
+        # 开头的 '  ' 是为了给行号留出位置，保持对齐
+        sys.stdout.write('   ') 
         for i in range(15):
+            # 使用 {:<2} 来确保每个数字占两个字符宽度，以和棋盘内容对齐
+            sys.stdout.write('{:<2}'.format(i))
+        sys.stdout.write('\n')
+        
+        for i in range(15):
+            # 打印行号，使用 {:>2} 来右对齐，使其美观
+            sys.stdout.write('{:>2} '.format(i))
             for j in range(15):
                 if self.board[i][j] == -1:
                     sys.stdout.write('_ ')

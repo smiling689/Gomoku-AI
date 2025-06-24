@@ -1,6 +1,6 @@
 // g++ Minimax/gomoku.cpp Minimax/my_eval_hash.cpp Minimax/flip.cpp Minimax/zobrist.cpp Minimax/vcx.cpp -o gomoku           编译
-// python Minimax/judge.py ./gomoku ./baseline                                                                      时，我的ai是ai0(先手，黑棋)
-// python judge/judge.py ./baseline ./gomoku                                                                      时，我的ai是ai1(后手，白棋)
+// python Minimax/judge.py ./gomoku ./baseline                                                                              时，我的ai是ai0(先手，黑棋)
+// python Minimax/judge.py ./baseline ./gomoku                                                                              时，我的ai是ai1(后手，白棋)
 #include "AIController.h"
 #include "zobrist.h"
 #include "flip.h"
@@ -15,14 +15,12 @@
 // #define DEBUG_MODE //是否开启调试模式
 // #define timing
 // #define pos_val
+#define huanshou
 
 // #define string_eval //使用string.find进行查找评估
 // #define vector_eval //使用vector对每种棋型找一遍来评估
 #define hash_eval //构建哈希表来评估，滑动窗口
 #define deeping //迭代加深接口
-
-
-// 0 3 4 8 9 20 20 ...
 
 extern int ai_side; //0: black, 1: white
 //ai_side == 0：代表AI执黑棋。
@@ -31,10 +29,12 @@ extern int ai_side; //0: black, 1: white
 std::string ai_name = "Smiling_AI";
 
 int turn = 0;
+int current_turn = 0;
 int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
-const int save_moves = 7;//从生成的可能moves中选前若干个进行计算
+// const int save_moves = 7;//从生成的可能moves中选前若干个进行计算
+int save_moves[8] = {7 , 7 , 7 , 7,  7 , 7 , 7 , 7};
 
 
 enum Cell {
@@ -48,7 +48,7 @@ struct MoveScore {
     int score;
 };
 
-const int POSITION_WEIGHT_FACTOR = 1;
+const int POSITION_WEIGHT_FACTOR = 10;
 
 // 15x15 位置权重矩阵
 const int positional_weights[15][15] = {
@@ -135,7 +135,7 @@ std::vector<std::pair<int, int>> generate_moves() {
     return moves;
 }
 
-std::vector<std::pair<int, int>> generate_sorted_moves(int current_player) {
+std::vector<std::pair<int, int>> generate_sorted_moves(int current_player , int depth) {
     auto moves = generate_moves(); 
     if (moves.empty()) {
         return {};
@@ -149,6 +149,11 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player) {
         // 分数 = 我方在此落子的进攻分 + 对方在此落子的防守分
         int offensive_score = score_move(move.first, move.second, current_player);
         int defensive_score = score_move(move.first, move.second, opponent_player);
+        // 尝试优化：试图让第六步变得几句进攻性，把对方的棋子引到我这儿来，但是失败了，好像还是不行——严重怀疑换边的action的分数计算有问题
+        if(current_turn == 6){
+            scored_moves.push_back({move, offensive_score * 10 + defensive_score});
+            continue;
+        }
         scored_moves.push_back({move, offensive_score + defensive_score});
     }
 
@@ -162,7 +167,7 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player) {
     for (const auto& scored_move : scored_moves) {
         sorted_moves.push_back(scored_move.move);
     }
-    size_t count = std::min(static_cast<size_t>(save_moves), sorted_moves.size());
+    size_t count = std::min(static_cast<size_t>(save_moves[8 - depth]), sorted_moves.size());
     sorted_moves.assign(sorted_moves.begin() , sorted_moves.begin() + count);
 
     return sorted_moves;
@@ -237,14 +242,46 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     // 已经下了 stone_count 手，现在轮到我们下第 stone_count + 1 手
     int black = count_black();
     int white = count_white();
-    int current_turn = black + white + 1;
+    current_turn = black + white + 1;
     #ifdef DEBUG_MODE
     std::cerr << "current_turn is " << current_turn << std::endl ; 
     #endif
+
     // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
         auto random = getRandom(); 
         // std::pair<int , int > random = {4, 4};
+        i = random.first , j = random.second;
+        #ifdef mizi
+            int score_before = update_score_for_position(i, j);
+        #endif 
+        board[random.first][random.second] = ai_side;
+        update_hash(random.first, random.second, ai_side);
+        #ifdef mizi
+            int score_after = update_score_for_position(i, j);
+            #ifdef pos_val
+            if(board[i][j] == BLACK){
+                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }else{
+                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
+            }
+            #endif
+            current_total_score += (score_after - score_before);
+        #endif
+        #ifdef timing
+        clock_t end = clock();
+        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
+        #endif
+        return random;
+    }
+
+    if (current_turn == 2) {
+        auto random = getRandom(); 
+        // std::pair<int , int > random = {14, 14};
+        // if(board[14][14] != EMPTY){
+            // random = {1 , 14};
+        // }
         i = random.first , j = random.second;
         #ifdef mizi
             int score_before = update_score_for_position(i, j);
@@ -300,12 +337,15 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         #endif
         return random;
     }
+    
 
     // --- 回合 2: 我方是后手 (白棋)，决定是否交换 ---
     if (ai_side == WHITE && black == 2 && white == 1) {
         int no_flip = no_flip_score();
         int flip = flip_score();
-        if (flip < no_flip) {
+        bool flag = true;
+        // if (flip < no_flip) {
+        if (flag){
             #ifdef DEBUG_MODE
             std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
             #endif
@@ -325,6 +365,8 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         }
     }
 
+  
+
     if (ai_side == BLACK && black == 2 && white == 1 && loc.first == -1) {
         #ifdef DEBUG_MODE
         std::cerr << "Smiling_AI: Opponent swapped. " << std::endl;
@@ -332,6 +374,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         flip_board();
         current_hash = calculate_hash();
     }
+  
 
     // ================== 算杀逻辑开始 ==================
     std::pair<int, int> vcx_move = find_victory(VCX_DEP);
@@ -382,7 +425,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         #ifdef DEBUG_MODE
         std::cerr << "Minimax didn't find a win. Starting deep VCX search..." << std::endl;
         #endif
-        std::pair<int, int> vcx_move = find_victory_sequence(VCX_DEP); // 这是我们新的算杀入口
+        std::pair<int, int> vcx_move = find_victory_sequence(VCX_DEP); // 新算杀入口
         if (vcx_move.first != -1) {
             #ifdef DEBUG_MODE
             std::cerr << "VCX search found a winning sequence! Overriding Minimax move." << std::endl;
@@ -500,7 +543,8 @@ MinimaxResult Minimax(int depth){
     int beta = INF;
     std::pair<int , int> res = {-1 , -1};
 
-    auto moves = generate_sorted_moves(ai_side);
+    
+    auto moves = generate_sorted_moves(ai_side , DEP);
     
     //如果我的ai执黑子，我想让结果最大
     if(ai_side == 0){
@@ -618,7 +662,7 @@ int min_value(int alpha , int beta , int depth){
 
     int val = INF;
     int original_beta = beta;
-    auto moves = generate_sorted_moves(WHITE);
+    auto moves = generate_sorted_moves(WHITE , depth);
     for (const auto& move : moves){
         int i = move.first , j = move.second;
         #ifdef mizi
@@ -698,7 +742,7 @@ int max_value(int alpha , int beta , int depth){
 
     int val = -INF;
     int original_alpha = alpha;
-    auto moves = generate_sorted_moves(BLACK);
+    auto moves = generate_sorted_moves(BLACK , depth);
     for (const auto& move : moves) {
         int i = move.first , j = move.second;
         #ifdef mizi
