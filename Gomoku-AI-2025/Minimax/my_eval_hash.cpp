@@ -6,7 +6,6 @@
 #include <unordered_map>
 
 const int SIZE = 15;
-extern int board[15][15]; 
 const uint64_t MOD = 1e9 + 7; 
 
 // 新增一个全局变量，用于实时存储当前棋局的评估分数
@@ -292,15 +291,27 @@ int update_score_pos_color(int r, int c , int color) {
      if (line.size() >= 5) {
         total_score += get_line_score(line, color);
     }
+
+    // std :: cerr << total_score << " !!! " << std::endl;
     return total_score;
 }
 
 int update_score_for_position(int r, int c){
     int black_score = update_score_pos_color(r , c , BLACK);
     int white_score = update_score_pos_color(r , c,  WHITE);
-    return black_score - white_score ;
+    int mizi_score = black_score - white_score ;
+    // std::cerr << "return " << mizi_score << std::endl;
+    return mizi_score;
 }
 
+
+int update_score_for_position_1(int r, int c){
+    int black_score = update_score_pos_color(r , c , BLACK);
+    int white_score = update_score_pos_color(r , c,  WHITE);
+    int mizi_score = black_score - white_score ;
+    // std::cerr << "return " << mizi_score << std::endl;
+    return mizi_score;
+}
 
 
 int eval() {

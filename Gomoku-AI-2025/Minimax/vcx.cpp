@@ -127,6 +127,9 @@ std::pair<int, int> find_victory(int dep) {
 
 std::map<Threat, int> analyze_threats(int r, int c, int player) {
     if (!is_valid(r, c) || board[r][c] == EMPTY) return {};
+    if(r == 4 && c == 5 && board[8][2] == 1){
+        std::cerr << "HERE!" << std::endl;
+    }
     std::map<Threat, int> threats;
     int dr[] = {1, 0, 1, 1}; int dc[] = {0, 1, 1, -1};
     board[r][c] = player;
@@ -151,6 +154,7 @@ std::map<Threat, int> analyze_threats(int r, int c, int player) {
     if (threats[FOUR] >= 1 && threats[OPEN_THREE] >= 1) threats[FOUR_THREE]++;
     return threats;
 }
+
 std::pair<int, int> find_move_by_threat(int player, Threat threat_level) {
     for (int r = 0; r < SIZE; ++r) for (int c = 0; c < SIZE; ++c) {
         if (board[r][c] == EMPTY) {

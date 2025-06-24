@@ -5,8 +5,8 @@ NOTE: AT LEAST one of your testing agents needs to invite RANDOMNESS.
 '''
 
 # g++ Minimax/gomoku.cpp Minimax/my_eval_hash.cpp Minimax/flip.cpp Minimax/zobrist.cpp Minimax/vcx.cpp -o gomoku
-# python Minimax/evaluate.py --agents-path ./gomoku ./baseline --num-plays 128 --num-workers 32 我后手，我翻版
-# python Minimax/evaluate.py --agents-path ./baseline ./gomoku --num-plays 64 --num-workers 32  我先手，应该胜率较高
+# python Minimax/evaluate.py --agents-path ./gomoku ./baseline --num-plays 128 --num-workers 32 我先手，应该胜率较高
+# python Minimax/evaluate.py --agents-path ./baseline ./gomoku --num-plays 64 --num-workers 32  我后手，0胜率
 
 import argparse
 import numpy as np
@@ -210,7 +210,7 @@ def main(
     ray.init(num_cpus=num_workers)
     num_plays_for_worker = [num_plays // num_workers + (1 if i < num_plays % num_workers else 0) for i in range(num_workers)]
     # which_black_first = [sum(num_plays_for_worker[:i]) % 2 for i in range(num_workers)] # 修改了这里，下面一行，1表示我是后手，0表示我是先手
-    which_black_first = [1 for i in range(num_workers)]
+    which_black_first = [0 for i in range(num_workers)]
 
     results = ray.get([
         ray.remote(evaluate).remote(agents_path, num_plays_for_worker[i], which_black_first[i])

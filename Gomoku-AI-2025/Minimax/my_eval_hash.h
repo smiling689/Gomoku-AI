@@ -25,5 +25,6 @@ void recalculate_full_board_score();
 
 int update_score_for_position(int r, int c);
 
+int update_score_for_position_1(int r, int c);
 
 #endif // MY_EVAL_HASH_H

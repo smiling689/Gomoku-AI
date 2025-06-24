@@ -21,6 +21,7 @@
 // #define vector_eval //使用vector对每种棋型找一遍来评估
 #define hash_eval //构建哈希表来评估，滑动窗口
 #define deeping //迭代加深接口
+#define mizi
 
 extern int ai_side; //0: black, 1: white
 //ai_side == 0：代表AI执黑棋。
@@ -149,11 +150,6 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player , int 
         // 分数 = 我方在此落子的进攻分 + 对方在此落子的防守分
         int offensive_score = score_move(move.first, move.second, current_player);
         int defensive_score = score_move(move.first, move.second, opponent_player);
-        // 尝试优化：试图让第六步变得几句进攻性，把对方的棋子引到我这儿来，但是失败了，好像还是不行——严重怀疑换边的action的分数计算有问题
-        if(current_turn == 6){
-            scored_moves.push_back({move, offensive_score * 10 + defensive_score});
-            continue;
-        }
         scored_moves.push_back({move, offensive_score + defensive_score});
     }
 
@@ -199,6 +195,10 @@ int count_white() {
 }
 
 void flip_board(){
+    
+        
+    std::cerr << "before flip : " << current_total_score << std::endl;
+
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
             if (board[i][j] == BLACK) {
@@ -212,19 +212,22 @@ void flip_board(){
     #ifdef mizi
     recalculate_full_board_score();
     #endif
+
+    
+    std::cerr << "after flip : " << current_total_score << std::endl;
+
 }
 
 std::pair<int, int> action(std::pair<int, int> loc) {
-    #ifdef timing
+        #ifdef timing
         clock_t start = clock();
         #endif
         int i = loc.first , j = loc.second;
-    if (loc.first != -1 && loc.second != -1) {
-         #ifdef mizi
-            int score_before = update_score_for_position(i, j);
-        #endif 
-        board[i][j] = 1 - ai_side;
-        #ifdef mizi
+        if (loc.first != -1 && loc.second != -1) {
+      
+            int score_before = update_score_for_position_1(i, j);
+            // std::cerr << "score before : !!! " << score_before << std::endl;
+            board[i][j] = 1 - ai_side;
             int score_after = update_score_for_position(i, j);
             #ifdef pos_val
             if(board[i][j] == BLACK){
@@ -233,10 +236,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
                 score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
             }
             #endif
+            // std::cerr << "score_before:" << score_before << " after : " << score_after << std::endl;
             current_total_score += (score_after - score_before);
-        #endif
+        
         update_hash(loc.first, loc.second, 1 - ai_side);
     }
+
+    std::cerr << "current_score : total __" << current_total_score << std::endl;
 
     // 2. 根据棋盘状态，计算当前是第几手棋
     // 已经下了 stone_count 手，现在轮到我们下第 stone_count + 1 手
@@ -246,6 +252,10 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     #ifdef DEBUG_MODE
     std::cerr << "current_turn is " << current_turn << std::endl ; 
     #endif
+
+    if(current_turn == 225){
+        return getRandom();
+    }
 
     // --- 回合 1: 我方是先手 (黑棋) ---
     if (current_turn == 1) {
@@ -277,8 +287,10 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     }
 
     if (current_turn == 2) {
-        auto random = getRandom(); 
-        // std::pair<int , int > random = {14, 14};
+
+        // auto random = getRandom(); 
+        // std::pair<int , int > random = {loc.first < 13 ? loc.first + 2 : loc.first - 2, loc.second < 14 ? loc.second + 1 : loc.second - 1};
+        std::pair<int , int> random = {14 , 14};
         // if(board[14][14] != EMPTY){
             // random = {1 , 14};
         // }
@@ -341,13 +353,13 @@ std::pair<int, int> action(std::pair<int, int> loc) {
 
     // --- 回合 2: 我方是后手 (白棋)，决定是否交换 ---
     if (ai_side == WHITE && black == 2 && white == 1) {
-        int no_flip = no_flip_score();
-        int flip = flip_score();
+        // int no_flip = no_flip_score();
+        // int flip = flip_score();
         bool flag = true;
         // if (flip < no_flip) {
         if (flag){
             #ifdef DEBUG_MODE
-            std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
+                std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
             #endif
             // 确认要换手，执行真正的翻转并返回
             flip_board();
