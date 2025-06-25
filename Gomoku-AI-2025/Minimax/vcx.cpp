@@ -12,7 +12,7 @@ extern int ai_side;
 
 // 常量定义
 const int SIZE = 15;
-const int VCX_DEP = 12;
+const int VCX_DEP = 10;
 
 enum Cell { EMPTY = -1, BLACK = 0, WHITE = 1 };
 enum Threat { NONE, WIN, OPEN_FOUR, DOUBLE_THREE, FOUR_THREE, FOUR, OPEN_THREE, THREE };
@@ -127,9 +127,7 @@ std::pair<int, int> find_victory(int dep) {
 
 std::map<Threat, int> analyze_threats(int r, int c, int player) {
     if (!is_valid(r, c) || board[r][c] == EMPTY) return {};
-    if(r == 4 && c == 5 && board[8][2] == 1){
-        std::cerr << "HERE!" << std::endl;
-    }
+    bool flag = false;
     std::map<Threat, int> threats;
     int dr[] = {1, 0, 1, 1}; int dc[] = {0, 1, 1, -1};
     board[r][c] = player;
@@ -152,11 +150,15 @@ std::map<Threat, int> analyze_threats(int r, int c, int player) {
     board[r][c] = EMPTY;
     if (threats[OPEN_THREE] >= 2) threats[DOUBLE_THREE]++;
     if (threats[FOUR] >= 1 && threats[OPEN_THREE] >= 1) threats[FOUR_THREE]++;
+    if(flag && threats[FOUR_THREE] > 0){
+        std::cerr << "YES!!!" << std::endl;
+    }
     return threats;
 }
 
 std::pair<int, int> find_move_by_threat(int player, Threat threat_level) {
-    for (int r = 0; r < SIZE; ++r) for (int c = 0; c < SIZE; ++c) {
+    for (int r = 0; r < SIZE; ++r) 
+    for (int c = 0; c < SIZE; ++c) {
         if (board[r][c] == EMPTY) {
             auto threats = analyze_threats(r, c, player);
             if (threats.count(threat_level) && threats[threat_level] > 0) return {r, c};

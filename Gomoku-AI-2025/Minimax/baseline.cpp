@@ -346,8 +346,8 @@ std::pair<int, int> action(std::pair<int, int> loc) {
 		int x = get(4, 10);
         int y = get(4, 10);
 		std::cerr << x << " " << y << std::endl;
-		x = 7;
-		y = 6;
+		// x = 7;
+		// y = 6;
 		res = Coordinate(x, y);
 	} else if (turnID <= 1 && ai_side == 0)
 		res = board.first_two_black();

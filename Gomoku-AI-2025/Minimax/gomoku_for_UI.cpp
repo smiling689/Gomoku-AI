@@ -31,13 +31,11 @@ std::string ai_name = "Smiling_AI";
 
 int turn = 0;
 int current_turn = 0;
-
-const int SIZE = 15;
-int board[SIZE][SIZE];
+int board[15][15];
 const int INF = INT_MAX;
 const int DEP = 8;//depth接口，表示搜索深度
 // const int save_moves = 7;//从生成的可能moves中选前若干个进行计算
-int save_moves[8] = {7 , 7 , 7 , 7,  7 , 7 , 7  , 7};
+int save_moves[8] = {7 , 7 , 7 , 7,  7 , 7 , 7 , 7};
 
 
 enum Cell {
@@ -95,8 +93,8 @@ void init() {
 
 std::pair<int, int> getRandom() {
     while (true) {
-        int x = rand() % SIZE;
-        int y = rand() % SIZE;
+        int x = rand() % 15;
+        int y = rand() % 15;
         if (board[x][y] == EMPTY) {
             board[x][y] = ai_side;
             return std::make_pair(x, y);
@@ -105,7 +103,7 @@ std::pair<int, int> getRandom() {
 }
 
 bool is_valid(int r, int c) {
-    return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+    return r >= 0 && r < 15 && c >= 0 && c < 15;
 }
 
 bool adj(int r, int c) {
@@ -122,15 +120,12 @@ bool adj(int r, int c) {
 
 std::vector<std::pair<int, int>> generate_moves() {
     std::vector<std::pair<int, int>> moves;
-    bool visited[SIZE][SIZE] = {false}; 
+    bool visited[15][15] = {false}; 
 
-    for (int r = 0; r < SIZE; ++r) {
-        for (int c = 0; c < SIZE; ++c) {
+    for (int r = 0; r < 15; ++r) {
+        for (int c = 0; c < 15; ++c) {
             // 只考虑已有棋子周围的空点
             if (board[r][c] == EMPTY && adj(r, c)) {
-                if(r + c <= 1 && ai_side == WHITE){
-                    continue;
-                }
                 if (!visited[r][c]) {
                     moves.push_back({r, c});
                     visited[r][c] = true;
@@ -168,7 +163,7 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player , int 
     for (const auto& scored_move : scored_moves) {
         sorted_moves.push_back(scored_move.move);
     }
-    size_t count = std::min(static_cast<size_t>(save_moves[DEP - depth]), sorted_moves.size());
+    size_t count = std::min(static_cast<size_t>(save_moves[8 - depth]), sorted_moves.size());
     sorted_moves.assign(sorted_moves.begin() , sorted_moves.begin() + count);
 
     return sorted_moves;
@@ -177,8 +172,8 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int current_player , int 
 // 一个辅助函数，用来计算棋盘上的棋子数
 int count_black() {
     int count = 0;
-    for (int i = 0; i < SIZE; ++i) {
-        for (int j = 0; j < SIZE; ++j) {
+    for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 15; ++j) {
             if (board[i][j] == BLACK) {
                 count++;
             }
@@ -189,8 +184,8 @@ int count_black() {
 
 int count_white() {
     int count = 0;
-    for (int i = 0; i < SIZE; ++i) {
-        for (int j = 0; j < SIZE; ++j) {
+    for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 15; ++j) {
             if (board[i][j] == WHITE) {
                 count++;
             }
@@ -202,10 +197,10 @@ int count_white() {
 void flip_board(){
     
         
-    // std::cerr << "before flip : " << current_total_score << std::endl;
+    std::cerr << "before flip : " << current_total_score << std::endl;
 
-    for (int i = 0; i < SIZE; ++i) {
-        for (int j = 0; j < SIZE; ++j) {
+    for (int i = 0; i < 15; ++i) {
+        for (int j = 0; j < 15; ++j) {
             if (board[i][j] == BLACK) {
                 board[i][j] = WHITE;
             }
@@ -219,7 +214,7 @@ void flip_board(){
     #endif
 
     
-    // std::cerr << "after flip : " << current_total_score << std::endl;
+    std::cerr << "after flip : " << current_total_score << std::endl;
 
 }
 
@@ -230,7 +225,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         int i = loc.first , j = loc.second;
         if (loc.first != -1 && loc.second != -1) {
       
-            int score_before = update_score_for_position(i, j);
+            int score_before = update_score_for_position_1(i, j);
             // std::cerr << "score before : !!! " << score_before << std::endl;
             board[i][j] = 1 - ai_side;
             int score_after = update_score_for_position(i, j);
@@ -247,7 +242,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         update_hash(loc.first, loc.second, 1 - ai_side);
     }
 
-    // std::cerr << "current_score : total __" << current_total_score << std::endl;
+    std::cerr << "current_score : total __" << current_total_score << std::endl;
 
     // 2. 根据棋盘状态，计算当前是第几手棋
     // 已经下了 stone_count 手，现在轮到我们下第 stone_count + 1 手
@@ -258,140 +253,9 @@ std::pair<int, int> action(std::pair<int, int> loc) {
     std::cerr << "current_turn is " << current_turn << std::endl ; 
     #endif
 
-    if(current_turn == SIZE * SIZE){
+    if(current_turn == 225){
         return getRandom();
     }
-
-    // --- 回合 1: 我方是先手 (黑棋) ---
-    if (current_turn == 1) {
-        auto random = getRandom(); 
-        // std::pair<int , int > random = {4, 4};
-        i = random.first , j = random.second;
-        #ifdef mizi
-            int score_before = update_score_for_position(i, j);
-        #endif 
-        board[random.first][random.second] = ai_side;
-        update_hash(random.first, random.second, ai_side);
-        #ifdef mizi
-            int score_after = update_score_for_position(i, j);
-            #ifdef pos_val
-            if(board[i][j] == BLACK){
-                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }else{
-                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }
-            #endif
-            current_total_score += (score_after - score_before);
-        #endif
-        #ifdef timing
-        clock_t end = clock();
-        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
-        #endif
-        return random;
-    }
-
-    if (current_turn == 2) {
-
-        // auto random = getRandom(); 
-        // std::pair<int , int > random = {SIZE - loc.first - 1 , SIZE - loc.second - 1};
-        std::pair<int , int> random = {0 , 0};
-        if(board[0][0] != EMPTY){
-            random = {1 , 0};
-        }
-        i = random.first , j = random.second;
-        #ifdef mizi
-            int score_before = update_score_for_position(i, j);
-        #endif 
-        board[random.first][random.second] = ai_side;
-        update_hash(random.first, random.second, ai_side);
-        #ifdef mizi
-            int score_after = update_score_for_position(i, j);
-            #ifdef pos_val
-            if(board[i][j] == BLACK){
-                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }else{
-                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }
-            #endif
-            current_total_score += (score_after - score_before);
-        #endif
-        #ifdef timing
-        clock_t end = clock();
-        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
-        #endif
-        return random;
-    }
-
-    if (current_turn == 3) {
-        // auto random = getRandom(); 
-        std::pair<int , int > random = {14, 14};
-        if(board[14][14] != EMPTY){
-            random = {1 , 14};
-        }
-        i = random.first , j = random.second;
-        #ifdef mizi
-            int score_before = update_score_for_position(i, j);
-        #endif 
-        board[random.first][random.second] = ai_side;
-        update_hash(random.first, random.second, ai_side);
-        #ifdef mizi
-            int score_after = update_score_for_position(i, j);
-            #ifdef pos_val
-            if(board[i][j] == BLACK){
-                score_after += positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }else{
-                score_after -= positional_weights[i][j] * POSITION_WEIGHT_FACTOR;
-            }
-            #endif
-            current_total_score += (score_after - score_before);
-        #endif
-        #ifdef timing
-        clock_t end = clock();
-        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
-        #endif
-        return random;
-    }
-    
-
-    // --- 回合 2: 我方是后手 (白棋)，决定是否交换 ---
-    if (ai_side == WHITE && black == 2 && white == 1) {
-        // int no_flip = no_flip_score();
-        // int flip = flip_score();
-        bool flag = true;
-        // if (flip < no_flip) {
-        if (flag){
-            #ifdef DEBUG_MODE
-                std::cerr << "Smiling_AI: Flip is better. Choosing to SWAP." << std::endl;
-            #endif
-            // 确认要换手，执行真正的翻转并返回
-            flip_board();
-            current_hash = calculate_hash();
-            #ifdef timing
-        clock_t end = clock();
-        double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-        std::cerr << "耗时: " << elapsed_secs << " 秒" << std::endl;
-        #endif
-            return {-1, -1};
-        } else {
-            #ifdef DEBUG_MODE
-            std::cerr << "Smiling_AI: Not swapping is better. Playing regular move." << std::endl;
-            #endif
-        }
-    }
-
-  
-
-    if (ai_side == BLACK && black == 2 && white == 1 && loc.first == -1) {
-        #ifdef DEBUG_MODE
-        std::cerr << "Smiling_AI: Opponent swapped. " << std::endl;
-        #endif
-        flip_board();
-        current_hash = calculate_hash();
-    }
-  
 
     // ================== 算杀逻辑开始 ==================
     std::pair<int, int> vcx_move = find_victory(VCX_DEP);

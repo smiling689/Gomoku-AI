@@ -29,7 +29,8 @@ enum PatternToken {
 //棋型分数定义
 const int CHENG_5_SCORE = 5000000;  // "连五"5000000
 const int HUO_4_SCORE = 100000;     // "活四"100000
-const int CHONG_4_SCORE = 10000;    // "冲四"10000
+const int JIAN_4_SCORE = 10000;    // "间冲四" 80000
+const int CHONG_4_SCORE = 15000;    // "冲四"10000
 const int DAN_HUO_3_SCORE = 8000;   // "单活三"8000
 const int TIAO_HUO_3_SCORE = 7000;  // "跳活三"7000
 const int MIAN_3_SCORE = 500;       // "眠三"500
@@ -54,7 +55,8 @@ const std::vector<std::string> MIAN_2_STRINGS = {
 const std::vector<std::pair<const std::vector<std::string>, int>> ALL_PATTERNS = {
     {{"11111"}, CHENG_5_SCORE},
     {{"011110"}, HUO_4_SCORE},
-    {{"01111-", "-11110", "10111", "11101", "11011"}, CHONG_4_SCORE},
+    {{"01111-", "-11110" }, CHONG_4_SCORE},
+    {{"10111", "11101", "11011"} , JIAN_4_SCORE},
     {{"01110"}, DAN_HUO_3_SCORE},
     {{"010110", "011010"}, TIAO_HUO_3_SCORE},
     {{"00111-", "-11100", "01011-", "-11010", "01101-", "-10110", "10011", "11001", "10101"}, MIAN_3_SCORE},

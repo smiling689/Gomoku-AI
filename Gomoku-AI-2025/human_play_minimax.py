@@ -76,7 +76,7 @@ def run(start_player=0,is_shown=1):
     #                                n_playout=400,
     #                                is_selfplay=False)
     
-    minimax_player = MinimaxPlayer(board_width=width, board_height=height, exe_path='./gomoku')
+    minimax_player = MinimaxPlayer(board_width=width, board_height=height, exe_path='./gomoku_UI')
 
     # alpha_zero_player_oppo = MCTSPlayer(policy_value_function=best_policy.policy_value_fn_random,
     #                                     action_fc=best_policy.action_fc_test_oppo,
