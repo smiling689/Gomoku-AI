@@ -191,7 +191,7 @@ def evaluate(
             wins[1 - which_black] += 1
         else:
             ...
-        which_black = 1 - which_black #修改了这里。最终需要注释回去
+        which_black = 1 - which_black 
        
     return EvaluationResult(num_plays, wins, agents_path)
 
@@ -209,8 +209,7 @@ def main(
 
     ray.init(num_cpus=num_workers)
     num_plays_for_worker = [num_plays // num_workers + (1 if i < num_plays % num_workers else 0) for i in range(num_workers)]
-    which_black_first = [sum(num_plays_for_worker[:i]) % 2 for i in range(num_workers)] # 修改了这里，下面一行，1表示我是后手，0表示我是先手
-    # which_black_first = [0 for i in range(num_workers)]
+    which_black_first = [sum(num_plays_for_worker[:i]) % 2 for i in range(num_workers)] 
 
     results = ray.get([
         ray.remote(evaluate).remote(agents_path, num_plays_for_worker[i], which_black_first[i])
