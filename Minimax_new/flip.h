@@ -12,12 +12,4 @@ struct MinimaxResult {
 
 MinimaxResult Minimax(int dep);
 
-extern int evaluate(int ter);
-
-extern void flip_board();
-
-int flip_score() ;
-
-int no_flip_score();
-
 #endif // FLIP_H

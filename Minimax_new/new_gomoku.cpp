@@ -76,10 +76,8 @@ using rand_int::rd_get;
 
 void init() {
     srand(time(0));
-    // transposition_table.clear();
     memset(board, EMPTY, sizeof(board));
     init_zobrist();
-    init_eval();
 }
 
 std::pair<int, int> getRandom() {
@@ -179,7 +177,7 @@ std::pair<int, int> action(std::pair<int, int> loc) {
         return vcx_res.step;
     }
 
-    // 4. 对于所有常规回合，使用 Minimax 算法计算最佳落子
+    // 对于所有常规回合，使用 Minimax 算法计算最佳落子
     MinimaxResult my_move = Minimax(turn <= 4 ? 2  : 6);
 
     if (my_move.move.first != -1 && my_move.move.second != -1) {

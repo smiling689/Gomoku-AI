@@ -7,7 +7,7 @@ extern int board[15][15];
 
 std::vector<std::pair<int , int> > generate_sorted_moves(int num) ;
 
-void init_eval();
+// void init_eval();
 
 int score_move(int r , int c);
 
@@ -29,11 +29,19 @@ namespace Scores {
     constexpr int JUMP_LIVE_THREE = LIVE_THREE / 2;
 }
 
-// ==================================================================================
-// 声明2: 主评估函数的命名空间和函数原型
-// 这是对外暴露的唯一接口。我们只声明函数，不写实现。
-// 实现（函数体 {...}）应该在 eval.cpp 文件中。
-// ==================================================================================
+namespace Point_Scores {
+    constexpr int FIVE = 1000000;
+    constexpr int LIVE_FOUR = 10000;
+    constexpr int DEAD_FOUR = 100;
+    constexpr int LIVE_THREE = 100;
+    constexpr int DEAD_THREE = 10;
+    constexpr int LIVE_TWO = 10;
+    constexpr int DEAD_TWO = 1;
+    constexpr int LIVE_ONE = 1;
+    constexpr int ZERO = 1;
+}
+
+
 namespace GomokuLegacyEval {
 
     /**
