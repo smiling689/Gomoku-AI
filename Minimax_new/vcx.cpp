@@ -49,8 +49,6 @@ std::vector<std::pair<int, int>> generate_threats(int player, bool is_vct);
 bool solve_min_node(int opponent, int dep, bool is_vct);
 std::pair<int, int> solve_max_node(int player, int dep, bool is_vct);
 
-extern std::vector<std::pair<int, int>> attack_points();
-
 // “一步制胜”检测函数
 std::pair<int, int> find_win_in_one_move(int player) {
     for (int r = 0; r < SIZE; ++r) {
@@ -133,7 +131,8 @@ std::pair<int, int> find_victory(int dep) {
         // 如果对方有威胁，但我方没有冲四或更强的反击，则交由Minimax处理
         if (my_four_move.first == -1) {
 #ifdef DEBUG_MODE
-            std::cerr << "VCX abstained: Opponent has threats, but AI has no "
+            std::cerr << "VCX abstained: Opponent has threats, but AI "
+                         "has no "
                          "decisive counter-attack. Passing to Minimax."
                       << std::endl;
 #endif
@@ -256,7 +255,8 @@ std::pair<int, int> find_victory_sequence(int max_depth) {
     auto opp_vct_move = solve_max_node(opponent_side, max_depth, true);
     if (opp_vct_move.first != -1) {
 
-        std::cerr << "VCT Found a winning sequence for OPPONENT. Blocking at ("
+        std::cerr << "VCT Found a winning sequence for OPPONENT. "
+                     "Blocking at ("
                   << opp_vct_move.first << ", " << opp_vct_move.second << ")"
                   << std::endl;
 
@@ -265,7 +265,8 @@ std::pair<int, int> find_victory_sequence(int max_depth) {
     auto opp_vcf_move = solve_max_node(opponent_side, max_depth, false);
     if (opp_vcf_move.first != -1) {
 
-        std::cerr << "VCF Found a winning sequence for OPPONENT. Blocking at ("
+        std::cerr << "VCF Found a winning sequence for OPPONENT. "
+                     "Blocking at ("
                   << opp_vcf_move.first << ", " << opp_vcf_move.second << ")"
                   << std::endl;
 
@@ -407,39 +408,57 @@ std::vector<std::pair<int, int>> generate_threats(int player, bool is_vct) {
 // 前向声明 vcx_max 和 vcx_min
 int vcx_max(int depth, int alpha, int beta);
 int vcx_min(int depth, int alpha, int beta);
+extern int score_move(std::pair<int , int> x , int ai_side);
 
-std::vector<std::pair<int, int>> attack_points_1() {
+
+std::vector<std::pair<int, int>> vcx_possible_moves() {
     //生成威胁或者进攻点位
-    std::vector<std::pair<int, int>> ans;
+    std::vector<std::pair<int, int> > ans;
     for (int r = 0; r <= 14; r++) {
         for (int c = 0; c <= 14; c++) {
             if (board[r][c] != EMPTY) {
                 continue;
             }
-            int length = 1;
+            if(score_move({r , c}, ai_side) >= 200){
+                ans.push_back({r , c});
+                continue;
+            }
+            
             for (int i = 0; i <= 3; i++) {
+                int length = 1;
                 int right_r = r + direc[i].first;
                 int right_c = c + direc[i].second;
                 int left_r = r - direc[i].first;
                 int left_c = c - direc[i].second;
-                int flag_r = 1, flag_l = 1;
+                int huo_r = 1, huo_l = 1;
 
                 while (is_valid_pr({right_r, right_c}) &&
-                       board[right_r][right_c] == ai_side) {
+                       board[right_r][right_c] == 1 - ai_side) {
                     length++;
                     right_r += direc[i].first;
                     right_c += direc[i].second;
                 }
 
                 while (is_valid_pr({left_r, left_c}) &&
-                       board[left_r][left_c] == ai_side) {
+                       board[left_r][left_c] == 1 - ai_side) {
                     length++;
                     left_r -= direc[i].first;
                     left_c -= direc[i].second;
                 }
+                if (is_valid_pr({left_r , left_c}) && board[left_r][left_c] == EMPTY)
+                    huo_r = 0;
+                if (is_valid_pr({right_r , right_c}) && board[right_r][right_c] == EMPTY)
+                    huo_l = 0;
+
+                if (length == 4 && !(huo_l && huo_r) ||
+                    length == 5) {
+                    ans.push_back({r , c});
+                    break;
+                }
             }
         }
     }
+
     return ans;
 }
 
@@ -460,7 +479,7 @@ int vcx_max(int depth, int alpha, int beta) {
     }
 
     // 2. 生成候选走法
-    std::vector<std::pair<int, int>> moves = attack_points();
+    std::vector<std::pair<int, int>> moves = vcx_possible_moves();
     if (moves.empty()) {
         return evaluate(ai_side);
     }
@@ -501,7 +520,7 @@ int vcx_min(int depth, int alpha, int beta) {
     }
 
     // 2. 生成候选走法
-    std::vector<std::pair<int, int>> moves = attack_points();
+    std::vector<std::pair<int, int>> moves = vcx_possible_moves();
     if (moves.empty()) {
         return evaluate(ai_side);
     }
@@ -533,7 +552,7 @@ VCXResult vcx_search(int depth) {
     int alpha = -INF;
     int beta = INF;
 
-    std::vector<std::pair<int, int>> moves = attack_points();
+    std::vector<std::pair<int, int>> moves = vcx_possible_moves();
 
     // 顶层是 Maximizer (我方AI) 的回合
     for (const auto &move : moves) {
