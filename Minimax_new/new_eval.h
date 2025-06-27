@@ -5,7 +5,7 @@
 
 extern int board[15][15];
 
-std::vector<std::pair<int , int> > generate_sorted_moves(int tot) ;
+std::vector<std::pair<int , int> > generate_sorted_moves(int num) ;
 
 void init_eval();
 

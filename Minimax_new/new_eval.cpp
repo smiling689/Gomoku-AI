@@ -1,15 +1,22 @@
 #include "new_eval.h"
+#include <algorithm>
 #include <cstring>
 #include <queue>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+
 extern int ai_side;
 
 bool is_valid_pair(std::pair<int, int> x) {
     return x.first <= 14 && x.second <= 14 && x.first >= 0 && x.second >= 0;
 }
+
+struct Move {
+    std::pair<int, int> pos;
+    int score;
+};
 
 enum Cell { EMPTY = -1, BLACK = 0, WHITE = 1 };
 std::unordered_map<int, int> value;
@@ -321,16 +328,16 @@ int evaluate(int color) {
     return total;
 }
 
-int score_move_color(int r, int c , int color);
+int score_move_color(int r, int c, int color);
 
 int score_move(int r, int c) { //启发式，空格评分函数
     int total_score = 0;
-    total_score += score_move_color(r , c , BLACK);
-    total_score += score_move_color(r , c , WHITE);
+    total_score += score_move_color(r, c, BLACK);
+    total_score += score_move_color(r, c, WHITE);
     return total_score;
 }
 
-int score_move_color(int r, int c , int color) {
+int score_move_color(int r, int c, int color) {
     int score = 0;
     for (int i = 0; i <= 3; i++) {
         int length = 1;
@@ -455,7 +462,7 @@ int winner() {
     return EMPTY;
 }
 
-std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
+std::vector<std::pair<int, int>> generate_sorted_moves_old(int tot) {
     std::vector<std::pair<int, int>> res;
 
     std::vector<std::pair<int, int>> five;
@@ -507,4 +514,64 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
     }
 
     return res;
+}
+
+std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
+    std::vector<Move> fives;
+    std::vector<Move> others;
+
+    // 1. 遍历棋盘，评估和分类
+    for (int i = 0; i <= 14; i++) {
+        for (int j = 0; j <= 14; j++) {
+            if (board[i][j] != -1) continue;
+
+            if (terminate(i, j)) {
+                return std::vector<std::pair<int , int> >{{i , j}};
+            }
+
+            int current_score = score_move(i , j);
+
+            if (current_score >= point_value[5]) {
+                fives.push_back({{i , j}, current_score});
+            } else {
+                others.push_back({{i , j}, current_score});
+            }
+        }
+    }
+
+    // 2. 处理最高优先级的“成五”返回情况
+    if (!fives.empty()) {
+        std::vector<std::pair<int, int>> result;
+        result.reserve(fives.size());
+        for (const auto& move : fives) {
+            result.push_back(move.pos);
+        }
+        return result;
+    }
+
+    // 3. 对所有非“成五”点排序
+    // std::stable_sort 可以在分数相同时，保持原有的棋盘扫描顺序，是更稳健的选择。
+    std::stable_sort(others.begin(), others.end(), [](const Move& a, const Move& b) {
+        return a.score > b.score;
+    });
+
+    // 4. 根据您的优雅逻辑，确定最终返回数量
+    // 步骤 A: 计算出“成四”点的数量
+    size_t num_fours = std::count_if(others.begin(), others.end(), [&](const Move& move) {
+        return move.score >= point_value[4];
+    });
+
+    // 步骤 B: 确定最终限制，既要满足 tot 的要求，又要保证所有“四”都被包括
+    size_t limit = std::max(static_cast<size_t>(tot), num_fours);
+    // 同时确保限制不超过总数
+    limit = std::min(limit, others.size());
+
+    // 5. 构建并返回最终结果
+    std::vector<std::pair<int, int>> result;
+    result.reserve(limit);
+    for (size_t i = 0; i < limit; ++i) {
+        result.push_back(others[i].pos);
+    }
+
+    return result;
 }
