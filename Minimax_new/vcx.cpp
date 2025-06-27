@@ -1,4 +1,5 @@
 #include "vcx.h"
+#include "new_eval.h"
 #include <algorithm>
 #include <climits>
 #include <iostream>
@@ -36,7 +37,6 @@ enum Threat {
 
 // 声明外部函数，确保链接时能找到它们
 extern int winner();
-extern int evaluate(int color);
 
 const int INF = INT_MAX;
 const int VCX_WIN_SCORE = INF - 1;
@@ -475,13 +475,13 @@ int vcx_max(int depth, int alpha, int beta) {
         return VCX_LOSE_SCORE; // 我方失败
     }
     if (depth == 0) {
-        return evaluate(ai_side);
+        return GomokuLegacyEval::evaluate(board , ai_side);
     }
 
     // 2. 生成候选走法
     std::vector<std::pair<int, int>> moves = vcx_possible_moves();
     if (moves.empty()) {
-        return evaluate(ai_side);
+        return GomokuLegacyEval::evaluate(board , ai_side);
     }
 
     // 3. 遍历走法，进行递归和剪枝
@@ -516,13 +516,13 @@ int vcx_min(int depth, int alpha, int beta) {
         return VCX_LOSE_SCORE;
     }
     if (depth == 0) {
-        return evaluate(ai_side);
+        return GomokuLegacyEval::evaluate(board , ai_side);
     }
 
     // 2. 生成候选走法
     std::vector<std::pair<int, int>> moves = vcx_possible_moves();
     if (moves.empty()) {
-        return evaluate(ai_side);
+        return GomokuLegacyEval::evaluate(board , ai_side);
     }
 
     // 3. 遍历走法，进行递归和剪枝

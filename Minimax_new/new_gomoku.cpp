@@ -281,7 +281,7 @@ MinimaxResult Minimax(int depth) {
 int min_value(int alpha, int beta, int depth) {
     int ter = terminal();
     if (depth == 0 || ter != 2) {
-        return evaluate(BLACK); //评估当前棋局的分数，当前该白棋落子
+        return GomokuLegacyEval::evaluate(board , BLACK); //评估当前棋局的分数，当前该白棋落子
     }
 
     auto it = transposition_table.find(current_hash);
@@ -339,7 +339,8 @@ int min_value(int alpha, int beta, int depth) {
 int max_value(int alpha, int beta, int depth) {
     int ter = terminal();
     if (depth == 0 || ter != 2) {
-        return evaluate(BLACK); //评估当前棋局的分数，当前该黑棋落子
+        // GomokuEvaluator n;
+        return GomokuLegacyEval::evaluate(board , BLACK); //评估当前棋局的分数，当前该黑棋落子
     }
 
     // --- Zobrist 查询 ---

@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-
 extern int ai_side;
 
 bool is_valid_pair(std::pair<int, int> x) {
@@ -19,6 +18,7 @@ struct Move {
 };
 
 enum Cell { EMPTY = -1, BLACK = 0, WHITE = 1 };
+
 std::unordered_map<int, int> value;
 std::unordered_map<int, int> point_value;
 
@@ -328,6 +328,162 @@ int evaluate(int color) {
     return total;
 }
 
+namespace GomokuLegacyEval {
+
+    // 内部辅助数据和函数
+    namespace {
+        const int DIRS[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}};
+        bool is_valid(int r, int c) {
+            return r >= 0 && r < 15 && c >= 0 && c < 15;
+        }
+    }
+
+    // 前向声明
+    int score_slice(const int (&board)[15][15], int eval_color, int segment_color, int len, int start_r, int start_c, int dir_idx);
+    int evaluate_direction(const int (&board)[15][15], int eval_color, int dir_idx);
+
+    // ==================================================================================
+    // 3. 主评估函数 (入口)
+    // ==================================================================================
+    int evaluate(const int (&board)[15][15], int eval_color) {
+        int total_score = 0;
+        total_score += evaluate_direction(board, eval_color, 0); // 水平
+        total_score += evaluate_direction(board, eval_color, 1); // 垂直
+        total_score += evaluate_direction(board, eval_color, 2); // 左上到右下
+        total_score += evaluate_direction(board, eval_color, 3); // 右上到左下
+        return total_score;
+    }
+
+    // ==================================================================================
+    // 4. 统一的方向评估函数 (保持不变)
+    // ==================================================================================
+    int evaluate_direction(const int (&board)[15][15], int eval_color, int dir_idx) {
+        int total_score = 0;
+        const int dr = DIRS[dir_idx][0];
+        const int dc = DIRS[dir_idx][1];
+
+        for (int i = 0; i < 15; ++i) {
+            for (int j = 0; j < 15; ++j) {
+                if (is_valid(i - dr, j - dc)) continue;
+
+                int r = i, c = j;
+                while(is_valid(r, c)) {
+                    if (board[r][c] == -1) {
+                        r += dr; c += dc;
+                        continue;
+                    }
+
+                    int segment_color = board[r][c];
+                    int segment_len = 0;
+                    int start_r = r, start_c = c;
+                    
+                    while(is_valid(r, c) && board[r][c] == segment_color) {
+                        segment_len++;
+                        r += dr; c += dc;
+                    }
+                    
+                    total_score += score_slice(board, eval_color, segment_color, segment_len, start_r, start_c, dir_idx);
+                }
+            }
+        }
+        return total_score;
+    }
+
+    // ==================================================================================
+    // 5. 精简参数并严格翻译原始逻辑的核心评分函数
+    // ==================================================================================
+    int score_slice(const int (&board)[15][15], int eval_color, int segment_color, int len, int start_r, int start_c, int dir_idx) {
+        int total_score = 0;
+        const int flag = (segment_color == eval_color) ? 1 : -1;
+        const int dr = DIRS[dir_idx][0];
+        const int dc = DIRS[dir_idx][1];
+
+        // --- 逻辑翻译 Part A: 评估连续切片本身 ---
+        // 从切片信息推导出两端点的坐标
+        const int r_before = start_r - dr;
+        const int c_before = start_c - dc;
+        const int r_after = start_r + len * dr;
+        const int c_after = start_c + len * dc;
+
+        if (len >= 5) {
+            total_score += Scores::FIVE * flag;
+        } else {
+            // 这个逻辑块完全等同于您 func1 最后四行 + func1_ 的逻辑
+            const bool live_start = is_valid(r_before, c_before) && board[r_before][c_before] == -1;
+            const bool live_end = is_valid(r_after, c_after) && board[r_after][c_after] == -1;
+            const int opponent_color = 1 - segment_color;
+
+            if (live_start && live_end) { // 对应: board[a][b] == -1 && board[c][d] == -1 -> 活棋
+                if (len == 4) total_score += Scores::LIVE_FOUR * flag;
+                else if (len == 3) total_score += Scores::LIVE_THREE * flag;
+                else if (len == 2) total_score += Scores::LIVE_TWO * flag;
+                else if (len == 1) total_score += Scores::LIVE_ONE * flag;
+            } else if (live_start || live_end) { // 对应: 一端是边界或对方棋子 -> 死棋
+                // 只有当另一端不是对方棋子时才算死棋，否则是彻底堵死的无价值棋
+                bool dead_by_opponent_at_start = is_valid(r_before, c_before) && board[r_before][c_before] == opponent_color;
+                bool dead_by_opponent_at_end = is_valid(r_after, c_after) && board[r_after][c_after] == opponent_color;
+                if(live_start && !dead_by_opponent_at_end) total_score += (len==4 ? Scores::DEAD_FOUR : len==3 ? Scores::DEAD_THREE : len==2 ? Scores::DEAD_TWO : 0) * flag;
+                if(live_end && !dead_by_opponent_at_start) total_score += (len==4 ? Scores::DEAD_FOUR : len==3 ? Scores::DEAD_THREE : len==2 ? Scores::DEAD_TWO : 0) * flag;
+            }
+        }
+
+        // --- 逻辑翻译 Part B: 严格复现原始 func1 中的特判逻辑 ---
+        // 特判的中心是切片后的第一个空格 (r_after, c_after)
+        if (is_valid(r_after, c_after) && board[r_after][c_after] == -1) {
+            
+            // 特判1: "if (length == 2...)" -> 对应 O O _ ??
+            if (len == 2) {
+                // p 对应切片后的空格 (r_after, c_after)
+                // r1, r2, r3 是空格后的点
+                int r1_r = r_after + dr, r1_c = c_after + dc;
+                int r2_r = r_after + 2 * dr, r2_c = c_after + 2 * dc;
+                int r3_r = r_after + 3 * dr, r3_c = c_after + 3 * dc;
+                // l3 是 O O _ 前面的点
+                int l3_r = start_r - 2 * dr, l3_c = start_c - 2 * dc;
+
+                if (is_valid(r1_r, r1_c) && board[r1_r][r1_c] == segment_color) {
+                    if (is_valid(r2_r, r2_c) && board[r2_r][r2_c] == segment_color) { // 找到了 O O _ O O
+                        if (is_valid(r3_r, r3_c) && board[r3_r][r3_c] != 1 - segment_color &&
+                            is_valid(l3_r, l3_c) && board[l3_r][l3_c] != 1 - segment_color) {
+                            total_score += Scores::JUMP_LIVE_FOUR * flag;
+                        } else if (!((!is_valid(r3_r, r3_c) || board[r3_r][r3_c] == 1 - segment_color) &&
+                                     (!is_valid(l3_r, l3_c) || board[l3_r][l3_c] == 1 - segment_color))) {
+                            total_score += Scores::JUMP_DEAD_FOUR * flag;
+                        }
+                    }
+                    // 此处省略了您原始代码中对活三的判断，因为它在更复杂的棋形下可能被重复计算。
+                    // 这是为了100%匹配您原始代码分支，您的原始代码在O O _ O后，并不会判断活三。
+                }
+            }
+
+            // 特判2: "if (length == 1...)" -> 对应 O _ ??
+            if (len == 1) {
+                int r1_r = r_after + dr, r1_c = c_after + dc;
+                int r2_r = r_after + 2 * dr, r2_c = c_after + 2 * dc;
+                int r3_r = r_after + 3 * dr, r3_c = c_after + 3 * dc;
+                int r4_r = r_after + 4 * dr, r4_c = c_after + 4 * dc;
+                int l2_r = start_r - 2 * dr, l2_c = start_c - 2 * dc;
+
+                if (is_valid(r1_r, r1_c) && board[r1_r][r1_c] == segment_color &&
+                    is_valid(r2_r, r2_c) && board[r2_r][r2_c] == segment_color) {
+                    if (is_valid(r3_r, r3_c) && board[r3_r][r3_c] == segment_color) { // 找到了 O _ O O O
+                        if (is_valid(r4_r, r4_c) && board[r4_r][r4_c] != 1 - segment_color &&
+                            is_valid(l2_r, l2_c) && board[l2_r][l2_c] == -1) {
+                            total_score += Scores::JUMP_LIVE_FOUR * flag;
+                        } else if (!((!is_valid(r4_r, r4_c) || board[r4_r][r4_c] == 1 - segment_color) &&
+                                     (!is_valid(l2_r, l2_c) || board[l2_r][l2_c] == 1 - segment_color))) {
+                            total_score += Scores::JUMP_DEAD_FOUR * flag;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return total_score;
+    }
+
+} // namespace GomokuLegacyEval
+
 int score_move_color(int r, int c, int color);
 
 int score_move(int r, int c) { //启发式，空格评分函数
@@ -462,60 +618,6 @@ int winner() {
     return EMPTY;
 }
 
-std::vector<std::pair<int, int>> generate_sorted_moves_old(int tot) {
-    std::vector<std::pair<int, int>> res;
-
-    std::vector<std::pair<int, int>> five;
-    std::vector<std::pair<int, int>> four;
-    std::vector<std::pair<int, int>> three;
-    std::vector<std::pair<int, int>> rest;
-    std::priority_queue<std::pair<int, std::pair<int, int>>> rest_list;
-
-    for (int i = 0; i <= 14; i++)
-        for (int j = 0; j <= 14; j++) {
-            if (board[i][j] != -1)
-                continue;
-            std::pair<int, int> p = {i, j};
-            if (terminate(p.first, p.second))
-                return std::vector<std::pair<int, int>>{p};
-            if (score_move(p.first, p.second) >= point_value[5])
-                five.push_back(p);
-            else if (score_move(p.first, p.second) >= point_value[4])
-                four.push_back(p);
-            else if (score_move(p.first, p.second) >= point_value[3])
-                three.push_back(p);
-            else
-                rest_list.push({score_move(p.first, p.second), p});
-        }
-    if (!five.empty())
-        return five;
-
-    while (!rest_list.empty()) {
-        std::pair<int, int> tmp = rest_list.top().second;
-        rest_list.pop();
-        rest.push_back(tmp);
-    }
-
-    for (int i = 0; i < four.size(); i++) {
-        res.push_back(four[i]);
-        tot--;
-    }
-    for (int i = 0; i < three.size(); i++) {
-        if (tot > 0) {
-            res.push_back(three[i]);
-            tot--;
-        }
-    }
-    for (int i = 0; i < rest.size(); i++) {
-        if (tot > 0) {
-            res.push_back(rest[i]);
-            tot--;
-        }
-    }
-
-    return res;
-}
-
 std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
     std::vector<Move> fives;
     std::vector<Move> others;
@@ -523,18 +625,19 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
     // 1. 遍历棋盘，评估和分类
     for (int i = 0; i <= 14; i++) {
         for (int j = 0; j <= 14; j++) {
-            if (board[i][j] != -1) continue;
+            if (board[i][j] != -1)
+                continue;
 
             if (terminate(i, j)) {
-                return std::vector<std::pair<int , int> >{{i , j}};
+                return std::vector<std::pair<int, int>>{{i, j}};
             }
 
-            int current_score = score_move(i , j);
+            int current_score = score_move(i, j);
 
             if (current_score >= point_value[5]) {
-                fives.push_back({{i , j}, current_score});
+                fives.push_back({{i, j}, current_score});
             } else {
-                others.push_back({{i , j}, current_score});
+                others.push_back({{i, j}, current_score});
             }
         }
     }
@@ -543,23 +646,25 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
     if (!fives.empty()) {
         std::vector<std::pair<int, int>> result;
         result.reserve(fives.size());
-        for (const auto& move : fives) {
+        for (const auto &move : fives) {
             result.push_back(move.pos);
         }
         return result;
     }
 
     // 3. 对所有非“成五”点排序
-    // std::stable_sort 可以在分数相同时，保持原有的棋盘扫描顺序，是更稳健的选择。
-    std::stable_sort(others.begin(), others.end(), [](const Move& a, const Move& b) {
-        return a.score > b.score;
-    });
+    // std::stable_sort
+    // 可以在分数相同时，保持原有的棋盘扫描顺序，是更稳健的选择。
+    std::stable_sort(
+        others.begin(), others.end(),
+        [](const Move &a, const Move &b) { return a.score > b.score; });
 
     // 4. 根据您的优雅逻辑，确定最终返回数量
     // 步骤 A: 计算出“成四”点的数量
-    size_t num_fours = std::count_if(others.begin(), others.end(), [&](const Move& move) {
-        return move.score >= point_value[4];
-    });
+    size_t num_fours =
+        std::count_if(others.begin(), others.end(), [&](const Move &move) {
+            return move.score >= point_value[4];
+        });
 
     // 步骤 B: 确定最终限制，既要满足 tot 的要求，又要保证所有“四”都被包括
     size_t limit = std::max(static_cast<size_t>(tot), num_fours);
