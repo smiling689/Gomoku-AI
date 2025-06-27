@@ -408,7 +408,7 @@ std::vector<std::pair<int, int>> generate_threats(int player, bool is_vct) {
 // 前向声明 vcx_max 和 vcx_min
 int vcx_max(int depth, int alpha, int beta);
 int vcx_min(int depth, int alpha, int beta);
-extern int score_move(std::pair<int , int> x , int ai_side);
+extern int score_move(int r , int c);
 
 
 std::vector<std::pair<int, int>> vcx_possible_moves() {
@@ -419,7 +419,7 @@ std::vector<std::pair<int, int>> vcx_possible_moves() {
             if (board[r][c] != EMPTY) {
                 continue;
             }
-            if(score_move({r , c}, ai_side) >= 200){
+            if(score_move(r , c) >= 200){
                 ans.push_back({r , c});
                 continue;
             }

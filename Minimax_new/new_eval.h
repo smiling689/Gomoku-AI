@@ -9,7 +9,7 @@ std::vector<std::pair<int , int> > generate_sorted_moves(int tot) ;
 
 void init_eval();
 
-int score_move(std::pair<int,int> p, int ai_color);
+int score_move(int r , int c);
 
 int evaluate(int color);
 

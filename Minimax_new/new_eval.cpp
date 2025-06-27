@@ -321,42 +321,51 @@ int evaluate(int color) {
     return total;
 }
 
-int score_move(std::pair<int, int> p, int ai_color) //用于评估一个空格有多好
-{
-    // 我们如下给分：（下一步若可形成） 连五 1000000分  活四 10000分  死四、活三
-    // 100分  死三 活二10分
-    int total = 0;
-    for (int color = 0; color <= 1; color++) {
-        int flag = 1;
+int score_move_color(int r, int c , int color);
 
-        for (int i = 0; i <= 3; i++) {
-            int length = 1;
-            std::pair<int, int> r_end = p + dir[i], l_end = p - dir[i];
-            int flag_r = 1, flag_l = 1; // 1为死端，0为活端
+int score_move(int r, int c) { //启发式，空格评分函数
+    int total_score = 0;
+    total_score += score_move_color(r , c , BLACK);
+    total_score += score_move_color(r , c , WHITE);
+    return total_score;
+}
 
-            while (is_valid_pair(r_end) && get(r_end) == color) {
-                length++;
-                r_end = r_end + dir[i];
-            }
-            if (is_valid_pair(r_end) && get(r_end) == -1)
-                flag_r = 0;
+int score_move_color(int r, int c , int color) {
+    int score = 0;
+    for (int i = 0; i <= 3; i++) {
+        int length = 1;
+        int right_r = r + dir[i].first;
+        int right_c = c + dir[i].second;
+        int left_r = r - dir[i].first;
+        int left_c = c - dir[i].second;
+        int huo_r = 1, huo_l = 1;
 
-            while (is_valid_pair(l_end) && get(l_end) == color) {
-                length++;
-                l_end = l_end - dir[i];
-            }
-            if (is_valid_pair(l_end) && get(l_end) == -1)
-                flag_l = 0;
-
-            if (length >= 5)
-                total += point_value[5] * flag;
-            if (flag_l == 0 && flag_r == 0)
-                total += point_value[length] * flag; //两个活端
-            else if (!flag_l * flag_r == 1)
-                total += point_value[-length] * flag; //有一端封死了
+        while (is_valid_pair({right_r, right_c}) &&
+               board[right_r][right_c] == color) {
+            length++;
+            right_r += dir[i].first;
+            right_c += dir[i].second;
         }
+
+        while (is_valid_pair({left_r, left_c}) &&
+               board[left_r][left_c] == color) {
+            length++;
+            left_r -= dir[i].first;
+            left_c -= dir[i].second;
+        }
+        if (is_valid_pair({left_r, left_c}) && board[left_r][left_c] == EMPTY)
+            huo_r = 0;
+        if (is_valid_pair({right_r, right_c}) &&
+            board[right_r][right_c] == EMPTY)
+            huo_l = 0;
+        if (length >= 5)
+            score += point_value[5];
+        if (huo_l == 0 && huo_r == 0)
+            score += point_value[length];
+        else if (huo_l == 0 || huo_r == 0)
+            score += point_value[-length];
     }
-    return total;
+    return score;
 }
 
 bool terminate(int r, int c) {
@@ -462,14 +471,14 @@ std::vector<std::pair<int, int>> generate_sorted_moves(int tot) {
             std::pair<int, int> p = {i, j};
             if (terminate(p.first, p.second))
                 return std::vector<std::pair<int, int>>{p};
-            if (score_move(p, ai_side) >= point_value[5])
+            if (score_move(p.first, p.second) >= point_value[5])
                 five.push_back(p);
-            else if (score_move(p, ai_side) >= point_value[4])
+            else if (score_move(p.first, p.second) >= point_value[4])
                 four.push_back(p);
-            else if (score_move(p, ai_side) >= point_value[3])
+            else if (score_move(p.first, p.second) >= point_value[3])
                 three.push_back(p);
             else
-                rest_list.push({score_move(p, ai_side), p});
+                rest_list.push({score_move(p.first, p.second), p});
         }
     if (!five.empty())
         return five;
