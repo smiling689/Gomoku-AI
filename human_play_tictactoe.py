@@ -49,11 +49,12 @@ def run(start_player=0,is_shown=1):
     # run a gomoku game with AI
     # you can set
     # human vs AI or AI vs AI
-    n = 5
-    width, height = 11, 11
-    model_file = './model/11_11_5.pt'
+    n = 3
+    width, height = 3, 3
+    # model_file = './model_11_11_5/best_policy.model'
     # model_file = './model_11_11_5/converted_model.pt'
-    # model_file = './model/3_3_3.model'
+    # model_file = './model/best_policy.model'
+    model_file = './tmp/current_policy.model'
     p = os.getcwd()
     model_file = path.join(p,model_file)
 
@@ -62,8 +63,8 @@ def run(start_player=0,is_shown=1):
 
     # mcts_player = MCTS_pure(5,400)
 
-    best_policy = PolicyValueNet(board_width=width,board_height=height,block=19,init_model=model_file,cuda=False)
-    # best_policy = PolicyValueNet(board_width=width, board_height=height, block=1, init_model=model_file, cuda=True)
+    # best_policy = PolicyValueNet(board_width=width,board_height=height,block=19,init_model=model_file,cuda=False)
+    best_policy = PolicyValueNet(board_width=width, board_height=height, block=1, init_model=model_file, cuda=True)
 
     # alpha_zero vs alpha_zero
 

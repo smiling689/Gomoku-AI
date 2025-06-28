@@ -14,7 +14,7 @@ else:
         # 遍历文件夹中的所有文件和文件夹
         for filename in os.listdir(folder_path):
             # 检查 "Zone" 是否在文件名中 (不区分大小写)
-            if "Zone" in filename.lower():
+            if "Zone1111" in filename.lower():
                 # 构建完整的文件路径
                 full_path = os.path.join(folder_path, filename)
                 
