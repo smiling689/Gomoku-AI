@@ -39,25 +39,6 @@ class PolicyValueNetModel(nn.Module):
 # --------------------------------------------- My Implements Begin ---------------------------------------------------
         res_channels = 64
 
-        # # Backbone Network
-        # self.conv2d_1 = nn.Conv2d(planes_num, res_channels, kernel_size=1, stride=1, padding=0, bias=False)
-        # # 残差块
-        # self.resnet = nn.ModuleList([self.resblock(res_channels) for _ in range(self.nb_block)])
-
-        # # Action Head
-        # self.conv2d_2 = nn.Conv2d(res_channels, 2, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn_1 = nn.BatchNorm2d(2)
-        # self.flatten_layer_1 = nn.Flatten()
-        # self.dense_layer_1 = nn.Linear(2 * board_width * board_height, board_width * board_height)
-
-        # # Value Head
-        # self.conv2d_3 = nn.Conv2d(res_channels, 1, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn_2 = nn.BatchNorm2d(1)
-        # self.flatten_layer_2 = nn.Flatten()
-        # self.dense_layer_2 = nn.Linear(board_width * board_height, 64)
-        # self.flatten_layer_3 = nn.Linear(64, 1)
-
-
         # 主干
         self.conv2d_1 = nn.Conv2d(planes_num, res_channels, kernel_size=1, stride=1, padding=2)
         self.resnet = nn.ModuleList([self.resblock(res_channels) for _ in range(self.nb_block)])
@@ -84,15 +65,6 @@ class PolicyValueNetModel(nn.Module):
         # nn.Conv2d
         # nn.BatchNorm2d
     
-        # return nn.Sequential(
-        #     nn.ZeroPad2d(1),
-        #     nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, stride=1, padding=0),
-        #     nn.BatchNorm2d(num_features=channels),
-        #     nn.ReLU(),
-        #     nn.ZeroPad2d(1),
-        #     nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, stride=1, padding=0),
-        #     nn.BatchNorm2d(num_features=channels)
-        # )
         return nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(channels),
@@ -108,11 +80,6 @@ class PolicyValueNetModel(nn.Module):
         for block in self.resnet:
             residual = x
             out = block(x)
-            # if out.shape != residual.shape:
-            #     min_h = min(out.shape[2], residual.shape[2])
-            #     min_w = min(out.shape[3], residual.shape[3])
-            #     out = out[:, :, :min_h, :min_w]
-            #     residual = residual[:, :, :min_h, :min_w]
             x = F.relu(out + residual)
 
         # Action Head
@@ -134,33 +101,6 @@ class PolicyValueNetModel(nn.Module):
         eval = F.relu(eval)
         eval = self.flatten_layer_3(eval)
         eval = torch.tanh(eval)
-
-        # # return act, eval
-        # x = self.conv2d_1(x)
-        # for block in self.resnet:
-        #     residual = x
-        #     out = block(x)
-        #     x = F.relu(out + residual)
-
-        # # 策略头
-        # act = self.conv2d_2(x)
-        # act = self.bn_1(act)
-        # act = F.relu(act)
-        # # act = F.adaptive_avg_pool2d(act, (15, 15)) 
-        # act = self.flatten_layer_1(act)
-        # act = self.dense_layer_1(act)
-        # act = F.log_softmax(act, dim=1)
-
-        # # 价值头
-        # eval = self.conv2d_3(x)
-        # eval = self.bn_2(eval)
-        # eval = F.relu(eval)
-        # # eval = F.adaptive_avg_pool2d(eval, (15, 15)) 
-        # eval = self.flatten_layer_2(eval)
-        # eval = self.dense_layer_2(eval)
-        # eval = F.relu(eval)
-        # eval = self.flatten_layer_3(eval)
-        # eval = torch.tanh(eval)
 
         return act, eval
 
